@@ -193,16 +193,18 @@
     <ClInclude Include="VBO.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="cubemapsFS.fs" />
-    <None Include="cubemapsVS.vs" />
+    <None Include="shader\cubemapsFS.fs" />
+    <None Include="shader\cubemapsVS.vs" />
     <None Include="shader\cubeFS.fs" />
     <None Include="shader\cubeVS.vs" />
+    <None Include="shader\instancemodelFS.fs" />
+    <None Include="shader\instancemodelVS.vs" />
     <None Include="shader\lightFS.fs" />
     <None Include="shader\lightVS.vs" />
-    <None Include="shader\modelFS.fs" />
-    <None Include="shader\modelVS.vs" />
-    <None Include="skyboxFS.fs" />
-    <None Include="skyboxVS.vs" />
+    <None Include="shader\reflectionmodelFS.fs" />
+    <None Include="shader\reflectionmodelVS.vs" />
+    <None Include="shader\skyboxFS.fs" />
+    <None Include="shader\skyboxVS.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

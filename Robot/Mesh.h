@@ -37,12 +37,15 @@ public:
 	std::vector<Texture> textures;
 	MaterialAttributes material;
 	std::string name;
+	static std::vector<glm::vec3> translations;
 
 	Mesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures);
 	//Mesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<MaterialAttributes>& materials);
 	Mesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, MaterialAttributes& material);
 	Mesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, MaterialAttributes& material, std::string& name);
 	void Draw(Shader& shader);
+	void Draw(Shader& shader, unsigned int instanceCount);
+	void SetInstance();
 
 	VAO VAO;
 

@@ -31,6 +31,7 @@ public:
 	VBO(GLfloat* vertices, GLsizeiptr size);
 	VBO(std::vector<Vertex>& vertices);
 	VBO(std::vector<float>& vertices);
+	VBO(std::vector<glm::vec3>& vertices);
 
 	// bind
 	void Bind();

@@ -11,6 +11,21 @@ void Model::Draw(Shader& shader)
 		i.Draw(shader);
 }
 
+void Model::Draw(Shader& shader, unsigned int instanceCount)
+{
+	for (auto i : this->meshes)
+		i.Draw(shader, instanceCount);
+}
+
+void Model::SetInstance(std::vector<glm::vec3>& translations)
+{
+	Mesh::translations = translations;
+	for (auto& mesh : meshes)
+	{
+		mesh.SetInstance();
+	}
+}
+
 void Model::loadModel(std::string path)
 {
 	Assimp::Importer import;

@@ -142,22 +142,28 @@
     <None Include="shader\lightVS.vs">
       <Filter>Shader</Filter>
     </None>
-    <None Include="shader\modelFS.fs">
+    <None Include="shader\reflectionmodelFS.fs">
       <Filter>Shader</Filter>
     </None>
-    <None Include="shader\modelVS.vs">
+    <None Include="shader\reflectionmodelVS.vs">
       <Filter>Shader</Filter>
     </None>
-    <None Include="cubemapsVS.vs">
+    <None Include="shader\cubemapsVS.vs">
       <Filter>Shader</Filter>
     </None>
-    <None Include="cubemapsFS.fs">
+    <None Include="shader\cubemapsFS.fs">
       <Filter>Shader</Filter>
     </None>
-    <None Include="skyboxVS.vs">
+    <None Include="shader\skyboxVS.vs">
       <Filter>Shader</Filter>
     </None>
-    <None Include="skyboxFS.fs">
+    <None Include="shader\skyboxFS.fs">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="shader\instancemodelFS.fs">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="shader\instancemodelVS.vs">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

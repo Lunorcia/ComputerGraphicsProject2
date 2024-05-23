@@ -13,6 +13,8 @@ public:
 	Model(const char* path);
 
 	void Draw(Shader& shader);
+	void Draw(Shader& shader, unsigned int instanceCount);
+	void SetInstance(std::vector<glm::vec3>& translations);
 
 private:
 	std::vector<Mesh> meshes;

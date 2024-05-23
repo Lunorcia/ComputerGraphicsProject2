@@ -58,6 +58,7 @@ void setLightSetting(Shader& shader, bool* lightOn, float* dirLightColor, float*
 glm::vec3 arrayToVec3(const float* array);
 
 unsigned int loadCubemap(std::vector<std::string> &faces);
+std::vector<glm::vec3> setTranslations(unsigned int insNum);
 
 std::vector<std::string> faces{
 	"skybox/right.jpg",
@@ -67,50 +68,50 @@ std::vector<std::string> faces{
 	"skybox/front.jpg",
 	"skybox/back.jpg",
 };
-std::vector<float> cubeVertices{
-	// positions          // texture Coords
-	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-	 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-	 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-	 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-	-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-
-	-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-	 0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-	 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-	 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-	-0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-
-	-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-	-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-	-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-	-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-	-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-	-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-
-	 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-	 0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-	 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-	 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-	 0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-	 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-
-	-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-	 0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-	 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-	 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-
-	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-	 0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-	 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-	 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-	-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
-};
+//std::vector<float> cubeVertices{
+//	// positions          // texture Coords
+//	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+//	 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+//	 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+//	 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+//	-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+//	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+//
+//	-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+//	 0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+//	 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+//	 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+//	-0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+//	-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+//
+//	-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+//	-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+//	-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+//	-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+//	-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+//	-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+//
+//	 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+//	 0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+//	 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+//	 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+//	 0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+//	 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+//
+//	-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+//	 0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+//	 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+//	 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+//	-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+//	-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+//
+//	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+//	 0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+//	 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+//	 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+//	-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+//	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+//};
 std::vector<float> skyboxVertices{
 	// positions          
 	-1.0f,  1.0f, -1.0f,
@@ -195,6 +196,8 @@ int actionSpeed = 20;
 
 int testX, testY;
 
+int instanceNum = 1000;
+
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
 glm::vec3 fullBodyMovement;
@@ -260,17 +263,22 @@ int main()
 	//glCullFace(GL_BACK);
 	glFrontFace(GL_CCW);
 
-	Shader shader("shader/reflectionmodelVS.vs", "shader/reflectionmodelFS.fs");
-	Shader cubeShader("shader/cubemapsVS.vs", "shader/cubemapsFS.fs");
+	Shader shader("shader/instancemodelVS.vs", "shader/instancemodelFS.fs");
+	Shader stageShader("shader/reflectionmodelVS.vs", "shader/reflectionmodelFS.fs");
+	//Shader cubeShader("shader/cubemapsVS.vs", "shader/cubemapsFS.fs");
 	Shader skyboxShader("shader/skyboxVS.vs", "shader/skyboxFS.fs");
 
+	std::vector<glm::vec3> translations = setTranslations(instanceNum);	//set instance translation
+	Mesh::translations = translations;
 	std::vector<Model> models = loadModel();
+	/*---if instance number changed, call this loop to update---*/
+	for (auto i : models)
+		i.SetInstance(translations);
 
 	Model stage("stage/stage.obj");
 
 	glm::mat4 stageModel = glm::mat4(1.0f);
 	stageModel = glm::translate(stageModel, glm::vec3(0.0f, -1.5f, 0.0f));
-
 
 
 	IMGUI_CHECKVERSION();
@@ -292,11 +300,11 @@ int main()
 
 	const char* actionOptions[] = { "Idle","Walk","Jumping Jack","Squad","Kame Hame Ha","Buu Victory","Moonwalk","Gangnam Style","Sit-up","Push-up" };
 	int actionNum = 0;
-	//cube VAO,VBO
-	VAO cubeVAO;
-	VBO cubeVBO(cubeVertices);
-	cubeVAO.LinkAttrib(cubeVBO, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0);
-	cubeVAO.LinkAttrib(cubeVBO, 1, 3, GL_FLOAT, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	////cube VAO,VBO
+	//VAO cubeVAO;
+	//VBO cubeVBO(cubeVertices);
+	//cubeVAO.LinkAttrib(cubeVBO, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0);
+	//cubeVAO.LinkAttrib(cubeVBO, 1, 3, GL_FLOAT, 6 * sizeof(float), (void*)(3 * sizeof(float)));
 	//skybox VAO,VBO
 	VAO	skyboxVAO = VAO();
 	VBO	skyboxVBO(skyboxVertices);
@@ -306,11 +314,16 @@ int main()
 	//Texture cubeTexture("skybox/container.jpg", GL_TEXTURE0);
 
 	//set uniform
-	cubeShader.use();
-	cubeShader.setInt("skybox", 0);
+	/*cubeShader.use();
+	cubeShader.setInt("skybox", 0);*/
 	skyboxShader.use();
 	skyboxShader.setInt("skybox", 0);
+
+	stageShader.use();
+	stageShader.setInt("skybox", 0);
+	shader.use();
 	shader.setInt("skybox", 0);
+
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -429,6 +442,14 @@ int main()
 				ImGui::Text("View");
 			}
 
+			ImGui::SliderInt("Robot amount", &instanceNum, 1, 1000);
+			if (instanceNum != translations.size())
+			{
+				translations = setTranslations(instanceNum);
+				for (auto i : models)
+					i.SetInstance(translations);
+			}
+
 			ImGui::Text("FPS: %d", displayFrames);
 			/*ImGui::Text("LEFT_ARM_UP:%f, %f, %f", modelAngles[LEFT_ARM_UP].x, modelAngles[LEFT_ARM_UP].y, modelAngles[LEFT_ARM_UP].z);
 			ImGui::Text("LEFT_ARM_DOWN:%f, %f, %f", modelAngles[LEFT_ARM_DOWN].x, modelAngles[LEFT_ARM_DOWN].y, modelAngles[LEFT_ARM_DOWN].z);
@@ -441,21 +462,21 @@ int main()
 		glm::mat4 view;
 		glm::mat4 projection;
 		//draw cube
-		cubeShader.use();
+		//cubeShader.use();
 		model = glm::mat4(1.0f);
 		view = camera.GetViewMatrix();
 		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-		cubeShader.setMat4("model", model);
-		cubeShader.setMat4("view", view);
-		cubeShader.setMat4("projection", projection);
-		cubeShader.setVec3("cameraPos", camera.Position);//////
+		//cubeShader.setMat4("model", model);
+		//cubeShader.setMat4("view", view);
+		//cubeShader.setMat4("projection", projection);
+		//cubeShader.setVec3("cameraPos", camera.Position);//////
 
-		cubeVAO.Bind();
-		//cubeTexture.Bind();//sampler2D
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		cubeVAO.Unbind();
+		//cubeVAO.Bind();
+		////cubeTexture.Bind();//sampler2D
+		//glActiveTexture(GL_TEXTURE0);
+		//glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+		//glDrawArrays(GL_TRIANGLES, 0, 36);
+		//cubeVAO.Unbind();
 
 		//draw skybox
 		glDepthFunc(GL_LEQUAL);
@@ -473,34 +494,48 @@ int main()
 		glDepthFunc(GL_LESS); // set depth function back to default
 
 		Action::ChooseAction(actionNum);
-
-		shader.use();
-
+		//draw stage
+		stageShader.use();
 		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
 		view = camera.GetViewMatrix();
+		stageShader.setMat4("projection", projection);
+		stageShader.setMat4("view", view);
+		setLightSetting(stageShader, lightOn, dirLightColor, pointLightColor, spotLightColor);
+		glm::mat4 normalMat;
+		normalMat = glm::transpose(glm::inverse(stageModel));
+		stageShader.setMat4("normalMat", normalMat);
+		stageShader.setMat4("model", stageModel);
+		stageShader.setVec3("cameraPos", camera.Position);////// for reflection
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+		stage.Draw(stageShader);
 
+		//draw robot
+		shader.use();
 		shader.setMat4("projection", projection);
 		shader.setMat4("view", view);
 
 		setLightSetting(shader, lightOn, dirLightColor, pointLightColor, spotLightColor);
+		normalMat = glm::transpose(glm::inverse(stageModel));
+		shader.setMat4("normalMat", normalMat);
+		shader.setMat4("model", stageModel);
 
 		updateModel();
-
 		for (int i = 0; i < MODEL_PARTS_NUM; i++) {
 
 			shader.setMat4("model", modelMat[i]);
 
-			glm::mat4 normalMat = glm::transpose(glm::inverse(modelMat[i]));
+			normalMat = glm::transpose(glm::inverse(modelMat[i]));
 			shader.setMat4("normalMat", normalMat);
-			shader.setVec3("cameraPos", camera.Position);//////
+			shader.setVec3("cameraPos", camera.Position);////// for reflection
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 
-			models[i].Draw(shader);
+			//models[i].Draw(shader);
+			models[i].Draw(shader, instanceNum);//draw instance
 		}
 
-		shader.setMat4("model", stageModel);
-		stage.Draw(shader);
+
 
 #ifdef FLOOR
 		glm::mat4 model = glm::mat4(1.0f);
@@ -527,9 +562,9 @@ int main()
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
-	cubeVAO.Delete();
+	//cubeVAO.Delete();
 	skyboxVAO.Delete();
-	cubeVBO.Delete();
+	//cubeVBO.Delete();
 	skyboxVBO.Delete();
 
 	glfwTerminate();
@@ -614,7 +649,6 @@ std::vector<Model> loadModel()
 		Model("model/rightLegDown.obj"),
 		Model("model/rightFoot.obj")
 	};
-
 	return models;
 }
 
@@ -684,6 +718,29 @@ unsigned int loadCubemap(std::vector<std::string> &faces)
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
 	return textureID;
+}
+
+std::vector<glm::vec3> setTranslations(unsigned int insNum)
+{
+	std::vector<glm::vec3> translations;
+	translations.reserve(insNum);
+	float offset = 2.0f;
+	unsigned int numPerSide = std::ceil(std::sqrt(insNum)); // Calculate how many robots per side
+	float start = -((numPerSide - 1) * offset) / 2.0f;
+	for (unsigned int z = 0; z < numPerSide; ++z)
+	{
+		for (unsigned int x = 0; x < numPerSide; ++x)
+		{
+			if (translations.size() >= insNum)
+				break;
+			glm::vec3 translation;
+			translation.x = start + x * offset;
+			translation.y = 0;
+			translation.z = start + z * offset;
+			translations.push_back(translation);
+		}
+	}
+	return translations;
 }
 
 

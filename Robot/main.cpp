@@ -57,7 +57,7 @@ std::vector<Model> loadModel();
 void setLightSetting(Shader& shader, bool* lightOn, float* dirLightColor, float* pointLightColor, float* spotLightColor);
 glm::vec3 arrayToVec3(const float* array);
 
-unsigned int loadCubemap(std::vector<std::string> &faces);
+unsigned int loadCubemap(std::vector<std::string>& faces);
 void RenderScene(const Shader& shader, VAO& planeVAO);
 void renderCube();
 void renderQuad();
@@ -83,50 +83,51 @@ std::vector<std::string> faces{
 	"skybox/front.jpg",
 	"skybox/back.jpg",
 };
-//std::vector<float> cubeVertices{
-//	// positions          // texture Coords
-//	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-//	 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-//	 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-//	 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-//	-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-//	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-//
-//	-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-//	 0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-//	 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-//	 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-//	-0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-//	-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-//
-//	-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-//	-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-//	-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-//	-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-//	-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-//	-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-//
-//	 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-//	 0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-//	 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-//	 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-//	 0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-//	 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-//
-//	-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-//	 0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-//	 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-//	 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-//	-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-//	-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-//
-//	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-//	 0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-//	 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-//	 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-//	-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-//	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
-//};
+std::vector<float> cubeVertices{
+	// positions          // texture Coords
+	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+	 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+	 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+	 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+
+	-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+	 0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+	 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+	 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+	-0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+
+	-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+	-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+	-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+	-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+	-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+	-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+
+	 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+	 0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+	 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+	 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+	 0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+	-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+	 0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+	 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+	 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+	 0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+	 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+	 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+	-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+};
+
 std::vector<float> skyboxVertices{
 	// positions          
 	-1.0f,  1.0f, -1.0f,
@@ -273,17 +274,17 @@ int main()
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
 	glEnable(GL_DEPTH_TEST);	//啟用深度測試
-	
+
 	//glEnable(GL_CULL_FACE);
 	//glCullFace(GL_BACK);
 	glFrontFace(GL_CCW);
 
 	Shader shader("shader/instancemodelVS.vs", "shader/instancemodelFS.fs");
 	Shader stageShader("shader/reflectionmodelVS.vs", "shader/reflectionmodelFS.fs");
-	//Shader cubeShader("shader/cubemapsVS.vs", "shader/cubemapsFS.fs");
+	Shader cubeShader("shader/cubemapsVS.vs", "shader/cubemapsFS.fs");
 	Shader skyboxShader("shader/skyboxVS.vs", "shader/skyboxFS.fs");
 	Shader depthShader("shader/depthmap.vs", "shader/depthmap.fs");
-	Shader shadowShader("shader/shadowmap.vs", "shader/shadowmap.fs");
+	Shader shadowShader("shader/shadowmodelVS.vs", "shader/shadowmodelFS.fs");
 	Shader quadShader("shader/quad.vs", "shader/quad.fs");
 
 	std::vector<glm::vec3> translations = setTranslations(instanceNum);	//set instance translation
@@ -318,18 +319,18 @@ int main()
 
 	const char* actionOptions[] = { "Idle","Walk","Jumping Jack","Squad","Kame Hame Ha","Buu Victory","Moonwalk","Gangnam Style","Sit-up","Push-up" };
 	int actionNum = 0;
-	////cube VAO,VBO
-	//VAO cubeVAO;
-	//VBO cubeVBO(cubeVertices);
-	//cubeVAO.LinkAttrib(cubeVBO, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0);
-	//cubeVAO.LinkAttrib(cubeVBO, 1, 3, GL_FLOAT, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	////light_cube VAO,VBO
+	VAO cubeVAO;
+	VBO cubeVBO(cubeVertices);
+	cubeVAO.LinkAttrib(cubeVBO, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0);
+
 	//skybox VAO,VBO
 	VAO	skyboxVAO = VAO();
 	VBO	skyboxVBO(skyboxVertices);
 	skyboxVAO.LinkAttrib(skyboxVBO, 0, 3, GL_FLOAT, 3 * sizeof(float), (void*)0);
 
 	unsigned int cubemapTexture = loadCubemap(faces);
-	Texture cubeTexture("skybox/container.jpg", GL_TEXTURE0);
+	//Texture cubeTexture("skybox/container.jpg", GL_TEXTURE0);
 
 	//set uniform
 	/*cubeShader.use();
@@ -375,11 +376,11 @@ int main()
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
 	shadowShader.use();
-	shadowShader.setInt("diffuseTexture", 0);
+	shadowShader.setInt("skybox", 0);
 	shadowShader.setInt("shadowMap", 1);
 
-	quadShader.use();
-	quadShader.setInt("depthMap", 0);
+	//quadShader.use();
+	//quadShader.setInt("depthMap", 0);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -421,7 +422,7 @@ int main()
 			ImGui::Checkbox("Spot Light", &lightOn[2]);
 			ImGui::ColorEdit3("Spot Light Color", spotLightColor);
 
-			if (ImGui::BeginCombo("Action", actionOptions[actionNum])) 
+			if (ImGui::BeginCombo("Action", actionOptions[actionNum]))
 			{
 				for (int i = 0; i < IM_ARRAYSIZE(actionOptions); i++) {
 					bool isSelected = (actionNum == i);
@@ -514,35 +515,25 @@ int main()
 
 			ImGui::End();
 		}
+
+		Action::ChooseAction(actionNum);
+		updateModel();
+
+		// Change light position over time
+		lightPos.x = sin(glfwGetTime()) * 2.0f;
+		lightPos.z = cos(glfwGetTime()) * 3.0f;
+		lightPos.y = 1.5 + cos(glfwGetTime()) * 1.0f;
+
 		glm::mat4 model;
 		glm::mat4 view;
 		glm::mat4 projection;
-		//draw cube
-		//cubeShader.use();
-		model = glm::mat4(1.0f);
-		view = camera.GetViewMatrix();
-		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-		//cubeShader.setMat4("model", model);
-		//cubeShader.setMat4("view", view);
-		//cubeShader.setMat4("projection", projection);
-		//cubeShader.setVec3("cameraPos", camera.Position);//////
+		glm::mat4 normalMat;
 
-		//cubeVAO.Bind();
-		////cubeTexture.Bind();//sampler2D
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-		//glDrawArrays(GL_TRIANGLES, 0, 36);
-		//cubeVAO.Unbind();
-
-		// Change light position over time
-		lightPos.x = sin(glfwGetTime()) * 3.0f;
-		lightPos.z = cos(glfwGetTime()) * 2.0f;
-		lightPos.y = 5.0 + cos(glfwGetTime()) * 1.0f;
 
 		//1. render depth to texture (from light's perspective)
 		glm::mat4 lightProjection, lightView, lightSpaceMatrix;
-		float nearPlane = 1.0f, farPlane = 7.5f;
-		lightProjection = glm::perspective(45.0f, (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, nearPlane, farPlane);
+		float nearPlane = 1.0f, farPlane = 100.0f;
+		lightProjection = glm::perspective(90.0f, (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, nearPlane, farPlane);
 		lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
 		lightSpaceMatrix = lightProjection * lightView;
 		depthShader.use();
@@ -551,10 +542,23 @@ int main()
 		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		//cubeTexture.Bind(); //plane texture (GL_TEXTURE0)
-		RenderScene(depthShader,planeVAO);
+
+		/////////////////////////////////////
+		//Render scene for depth texture using depthShader (only need uniform "model")
+		//draw stage
+		depthShader.setMat4("model", stageModel);
+		stage.Draw(stageShader);
+		//draw robot
+		for (int i = 0; i < MODEL_PARTS_NUM; i++) {
+
+			depthShader.setMat4("model", modelMat[i]);
+			//models[i].Draw(shader);
+			models[i].Draw(depthShader, instanceNum);//draw instance
+		}
+		/////////////////////////////////////
+
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);//unbind depthMap FBO
-		
+
 		glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -568,19 +572,47 @@ int main()
 		shadowShader.setVec3("lightPos", lightPos);
 		shadowShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 		shadowShader.setBool("shadows", true);//turn on shadow
-		cubeTexture.Bind(); //plane texture (GL_TEXTURE0)
 		glActiveTexture(GL_TEXTURE1);	//depth texture (GL_TEXTURE1)
 		glBindTexture(GL_TEXTURE_2D, depthMap);
-		RenderScene(shadowShader,planeVAO);
 
-		//quad for visual debugging
-		quadShader.use();
-		quadShader.setFloat("near_plane", nearPlane);
-		quadShader.setFloat("far_plane", farPlane);
+		/////////////////////////////////////
+		//Render scene as normal using shadowShader
+		//draw stage
+		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+		view = camera.GetViewMatrix();
+		shadowShader.setMat4("projection", projection);
+		shadowShader.setMat4("view", view);
+		setLightSetting(shadowShader, lightOn, dirLightColor, pointLightColor, spotLightColor);
+
+		normalMat = glm::transpose(glm::inverse(stageModel));
+		shadowShader.setMat4("normalMat", normalMat);
+		shadowShader.setMat4("model", stageModel);
+		shadowShader.setVec3("cameraPos", camera.Position);////// for reflection
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, depthMap);
-		//renderQuad();
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+		stage.Draw(shadowShader);
 
+		//draw robot
+		for (int i = 0; i < MODEL_PARTS_NUM; i++) {
+
+			shadowShader.setMat4("model", modelMat[i]);
+
+			normalMat = glm::transpose(glm::inverse(modelMat[i]));
+			shadowShader.setMat4("normalMat", normalMat);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+			//models[i].Draw(shader);
+			models[i].Draw(shadowShader, instanceNum);//draw instance
+		}
+		/////////////////////////////////////
+
+		////quad for visual debugging
+		//quadShader.use();
+		//quadShader.setFloat("near_plane", nearPlane);
+		//quadShader.setFloat("far_plane", farPlane);
+		//glActiveTexture(GL_TEXTURE0);
+		//glBindTexture(GL_TEXTURE_2D, depthMap);
+		////renderQuad();
 
 		//draw skybox
 		glDepthFunc(GL_LEQUAL);
@@ -593,51 +625,72 @@ int main()
 		skyboxVAO.Bind();
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);//samplerCube
-		//glDrawArrays(GL_TRIANGLES, 0, 36);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 		skyboxVAO.Unbind();
 		glDepthFunc(GL_LESS); // set depth function back to default
 
-		Action::ChooseAction(actionNum);
-		//draw stage
-		stageShader.use();
-		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+		//draw cube
+		cubeShader.use();
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, lightPos);
+		model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
 		view = camera.GetViewMatrix();
-		stageShader.setMat4("projection", projection);
-		stageShader.setMat4("view", view);
-		setLightSetting(stageShader, lightOn, dirLightColor, pointLightColor, spotLightColor);
-		glm::mat4 normalMat;
-		normalMat = glm::transpose(glm::inverse(stageModel));
-		stageShader.setMat4("normalMat", normalMat);
-		stageShader.setMat4("model", stageModel);
-		stageShader.setVec3("cameraPos", camera.Position);////// for reflection
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+
+		cubeShader.setMat4("model", model);
+		cubeShader.setMat4("view", view);
+		cubeShader.setMat4("projection", projection);
+
+		cubeVAO.Bind();
+		////cubeTexture.Bind();//sampler2D
+		//glActiveTexture(GL_TEXTURE0);
+		//glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		cubeVAO.Unbind();
+
+
+
+
+		//draw stage
+		//stageShader.use();
+		//projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+		//view = camera.GetViewMatrix();
+		//stageShader.setMat4("projection", projection);
+		//stageShader.setMat4("view", view);
+		//setLightSetting(stageShader, lightOn, dirLightColor, pointLightColor, spotLightColor);
+
+		//normalMat = glm::transpose(glm::inverse(stageModel));
+		//stageShader.setMat4("normalMat", normalMat);
+		//stageShader.setMat4("model", stageModel);
+		//stageShader.setVec3("cameraPos", camera.Position);////// for reflection
+		//glActiveTexture(GL_TEXTURE0);
+		//glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 		//stage.Draw(stageShader);
 
-		//draw robot
-		shader.use();
-		shader.setMat4("projection", projection);
-		shader.setMat4("view", view);
+		////draw robot
+		//shader.use();
+		//shader.setMat4("projection", projection);
+		//shader.setMat4("view", view);
 
-		setLightSetting(shader, lightOn, dirLightColor, pointLightColor, spotLightColor);
-		normalMat = glm::transpose(glm::inverse(stageModel));
-		shader.setMat4("normalMat", normalMat);
-		shader.setMat4("model", stageModel);
+		//setLightSetting(shader, lightOn, dirLightColor, pointLightColor, spotLightColor);
+		//normalMat = glm::transpose(glm::inverse(stageModel));
+		//shader.setMat4("normalMat", normalMat);
+		//shader.setMat4("model", stageModel);
 
-		updateModel();
-		for (int i = 0; i < MODEL_PARTS_NUM; i++) {
 
-			shader.setMat4("model", modelMat[i]);
+		//for (int i = 0; i < MODEL_PARTS_NUM; i++) {
 
-			normalMat = glm::transpose(glm::inverse(modelMat[i]));
-			shader.setMat4("normalMat", normalMat);
-			shader.setVec3("cameraPos", camera.Position);////// for reflection
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+		//	shader.setMat4("model", modelMat[i]);
 
-			//models[i].Draw(shader);
-			//models[i].Draw(shader, instanceNum);//draw instance
-		}
+		//	normalMat = glm::transpose(glm::inverse(modelMat[i]));
+		//	shader.setMat4("normalMat", normalMat);
+		//	shader.setVec3("cameraPos", camera.Position);////// for reflection
+		//	glActiveTexture(GL_TEXTURE0);
+		//	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+
+		//	//models[i].Draw(shader);
+		//	//models[i].Draw(shader, instanceNum);//draw instance
+		//}		
 
 
 
@@ -674,7 +727,7 @@ int main()
 	glfwTerminate();
 	return 0;
 }
-void RenderScene(const Shader &shader, VAO &planeVAO)
+void RenderScene(const Shader& shader, VAO& planeVAO)
 {
 	glm::mat4 model = glm::mat4(1.0f);
 	shader.setMat4("model", model);
@@ -918,7 +971,7 @@ glm::vec3 arrayToVec3(const float* array)
 	return glm::vec3(array[0], array[1], array[2]);
 }
 
-unsigned int loadCubemap(std::vector<std::string> &faces)
+unsigned int loadCubemap(std::vector<std::string>& faces)
 {
 	//loadFaces(faces);
 	unsigned int textureID;

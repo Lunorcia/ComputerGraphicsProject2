@@ -213,6 +213,8 @@ int actionSpeed = 20;
 int testX, testY;
 
 int instanceNum = 1;
+bool shadowOn = false;
+bool reflectionOn = false;
 
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
@@ -312,7 +314,7 @@ int main()
 	float pointLightColor[] = { 1.0f,1.0f,1.0f };
 	float spotLightColor[] = { 1.0f,1.0f,1.0f };
 
-	bool lightOn[] = { true,true,true }; // 0=dirLight 1=pointLight 2=spotLight
+	bool lightOn[] = { true,false,false }; // 0=dirLight 1=pointLight 2=spotLight
 
 	double lastTime = glfwGetTime();
 	int nbFrames = 0, displayFrames = 0;
@@ -499,6 +501,9 @@ int main()
 				ImGui::Text("View");
 			}
 
+			ImGui::Checkbox("Enable Shadow", &shadowOn);
+			ImGui::Checkbox("Enable Environment map", &reflectionOn);
+
 			ImGui::SliderInt("Robot amount", &instanceNum, 1, 1000);
 			if (instanceNum != translations.size())
 			{
@@ -519,10 +524,16 @@ int main()
 		Action::ChooseAction(actionNum);
 		updateModel();
 
-		// Change light position over time
-		lightPos.x = sin(glfwGetTime()) * 2.0f;
-		lightPos.z = cos(glfwGetTime()) * 3.0f;
-		lightPos.y = 1.5 + cos(glfwGetTime()) * 1.0f;
+		if (shadowOn)
+		{
+			// Change light position over time
+			lightPos.x = sin(glfwGetTime()) * 2.0f;
+			lightPos.z = cos(glfwGetTime()) * 3.0f;
+			lightPos.y = 1.5 + cos(glfwGetTime()) * 1.0f;
+		}
+		else
+			lightPos = glm::vec3(1.2f, 1.0f, 2.0f);
+
 
 		glm::mat4 model;
 		glm::mat4 view;
@@ -533,7 +544,7 @@ int main()
 		//1. render depth to texture (from light's perspective)
 		glm::mat4 lightProjection, lightView, lightSpaceMatrix;
 		float nearPlane = 1.0f, farPlane = 100.0f;
-		lightProjection = glm::perspective(90.0f, (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, nearPlane, farPlane);
+		lightProjection = glm::perspective(45.0f, (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, nearPlane, farPlane);
 		lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
 		lightSpaceMatrix = lightProjection * lightView;
 		depthShader.use();
@@ -571,7 +582,8 @@ int main()
 		shadowShader.setVec3("viewPos", camera.Position);
 		shadowShader.setVec3("lightPos", lightPos);
 		shadowShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-		shadowShader.setBool("shadows", true);//turn on shadow
+		shadowShader.setBool("shadows", shadowOn);//turn on shadow
+		shadowShader.setBool("reflectionOn", reflectionOn);// turn on environment map
 		glActiveTexture(GL_TEXTURE1);	//depth texture (GL_TEXTURE1)
 		glBindTexture(GL_TEXTURE_2D, depthMap);
 
@@ -629,24 +641,28 @@ int main()
 		skyboxVAO.Unbind();
 		glDepthFunc(GL_LESS); // set depth function back to default
 
-		//draw cube
-		cubeShader.use();
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, lightPos);
-		model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-		view = camera.GetViewMatrix();
-		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+		if (shadowOn)
+		{
+			//draw light cube
+			cubeShader.use();
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, lightPos);
+			model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+			view = camera.GetViewMatrix();
+			projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
 
-		cubeShader.setMat4("model", model);
-		cubeShader.setMat4("view", view);
-		cubeShader.setMat4("projection", projection);
+			cubeShader.setMat4("model", model);
+			cubeShader.setMat4("view", view);
+			cubeShader.setMat4("projection", projection);
 
-		cubeVAO.Bind();
-		////cubeTexture.Bind();//sampler2D
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		cubeVAO.Unbind();
+			cubeVAO.Bind();
+			////cubeTexture.Bind();//sampler2D
+			//glActiveTexture(GL_TEXTURE0);
+			//glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+			cubeVAO.Unbind();
+		}
+
 
 
 

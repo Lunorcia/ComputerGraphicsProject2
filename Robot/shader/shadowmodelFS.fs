@@ -68,6 +68,7 @@ uniform samplerCube skybox; //texture 0
 uniform sampler2D shadowMap;//texture 1
 
 uniform bool shadows;
+uniform bool reflectionOn;
 
 
 in vec3 FragPos;
@@ -86,9 +87,12 @@ void main()
 	vec3 norm = normalize(Normal);
 	vec3 viewDir = normalize(viewPos - FragPos);
 	vec3 result;
-	vec3 I = normalize(FragPos - cameraPos);
-	vec3 R = reflect(I, normalize(Normal));
-	result = texture(skybox, R).rgb;
+	if (reflectionOn)
+	{
+		vec3 I = normalize(FragPos - cameraPos);
+		vec3 R = reflect(I, normalize(Normal));
+		result = texture(skybox, R).rgb;
+	}
 
 	if(lightController.dirLightOn == true)
 		result += CalDirLight(dirLight, norm, viewDir);
@@ -98,8 +102,10 @@ void main()
 		result += CalSpotLight(spotLight, norm, FragPos, viewDir);
 	
 	//vec3 emission = texture(material.emission, TexCoords).rgb;
-	
-	result += CalShadowLight(norm, viewDir);
+	if(shadows)
+	{
+		result += CalShadowLight(norm, viewDir);
+	}
 
 	FragColor = vec4(result, 1.0);
 }

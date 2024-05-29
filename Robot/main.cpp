@@ -20,6 +20,7 @@
 #include "Camera.h"
 #include "Texture.h"
 #include "Model.h"
+#include "WaterFBO.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -58,9 +59,7 @@ void setLightSetting(Shader& shader, bool* lightOn, float* dirLightColor, float*
 glm::vec3 arrayToVec3(const float* array);
 
 unsigned int loadCubemap(std::vector<std::string>& faces);
-void RenderScene(const Shader& shader, VAO& planeVAO);
-void renderCube();
-void renderQuad();
+
 std::vector<glm::vec3> setTranslations(unsigned int insNum);
 
 std::vector<float> planeVertices = {
@@ -215,6 +214,7 @@ int testX, testY;
 int instanceNum = 1;
 bool shadowOn = false;
 bool reflectionOn = false;
+bool waterOn = false;
 
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
@@ -287,7 +287,7 @@ int main()
 	Shader skyboxShader("shader/skyboxVS.vs", "shader/skyboxFS.fs");
 	Shader depthShader("shader/depthmap.vs", "shader/depthmap.fs");
 	Shader shadowShader("shader/shadowmodelVS.vs", "shader/shadowmodelFS.fs");
-	Shader quadShader("shader/quad.vs", "shader/quad.fs");
+	Shader waterShader("shader/water.vs", "shader/water.fs");
 
 	std::vector<glm::vec3> translations = setTranslations(instanceNum);	//set instance translation
 	Mesh::translations = translations;
@@ -314,7 +314,7 @@ int main()
 	float pointLightColor[] = { 1.0f,1.0f,1.0f };
 	float spotLightColor[] = { 1.0f,1.0f,1.0f };
 
-	bool lightOn[] = { true,false,false }; // 0=dirLight 1=pointLight 2=spotLight
+	bool lightOn[] = { true,true,true }; // 0=dirLight 1=pointLight 2=spotLight
 
 	double lastTime = glfwGetTime();
 	int nbFrames = 0, displayFrames = 0;
@@ -377,12 +377,12 @@ int main()
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);//unbind FBO
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
+	WaterFBO waterFBO;
+
 	shadowShader.use();
 	shadowShader.setInt("skybox", 0);
 	shadowShader.setInt("shadowMap", 1);
 
-	//quadShader.use();
-	//quadShader.setInt("depthMap", 0);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -503,6 +503,7 @@ int main()
 
 			ImGui::Checkbox("Enable Shadow", &shadowOn);
 			ImGui::Checkbox("Enable Environment map", &reflectionOn);
+			ImGui::Checkbox("Enable Water", &waterOn);
 
 			ImGui::SliderInt("Robot amount", &instanceNum, 1, 1000);
 			if (instanceNum != translations.size())
@@ -549,11 +550,10 @@ int main()
 		lightSpaceMatrix = lightProjection * lightView;
 		depthShader.use();
 		depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-
+		//draw on depthMapFBO
 		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 		glClear(GL_DEPTH_BUFFER_BIT);
-
 		/////////////////////////////////////
 		//Render scene for depth texture using depthShader (only need uniform "model")
 		//draw stage
@@ -568,7 +568,27 @@ int main()
 		}
 		/////////////////////////////////////
 
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);//unbind depthMap FBO
+		if (waterOn)	//draw on waterFBO (ReflecFBO)
+		{
+			glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+			waterFBO.BindReflecFBO();
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			/////////////////////////////////////
+			//Render scene for depth texture using depthShader (only need uniform "model")
+			//draw stage
+			depthShader.setMat4("model", stageModel);
+			stage.Draw(stageShader);
+			//draw robot
+			for (int i = 0; i < MODEL_PARTS_NUM; i++) {
+
+				depthShader.setMat4("model", modelMat[i]);
+				//models[i].Draw(shader);
+				models[i].Draw(depthShader, instanceNum);//draw instance
+			}
+			/////////////////////////////////////
+		}
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);//unbind FBO
 
 		glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -584,9 +604,9 @@ int main()
 		shadowShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 		shadowShader.setBool("shadows", shadowOn);//turn on shadow
 		shadowShader.setBool("reflectionOn", reflectionOn);// turn on environment map
+
 		glActiveTexture(GL_TEXTURE1);	//depth texture (GL_TEXTURE1)
 		glBindTexture(GL_TEXTURE_2D, depthMap);
-
 		/////////////////////////////////////
 		//Render scene as normal using shadowShader
 		//draw stage
@@ -603,7 +623,6 @@ int main()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 		stage.Draw(shadowShader);
-
 		//draw robot
 		for (int i = 0; i < MODEL_PARTS_NUM; i++) {
 
@@ -618,28 +637,40 @@ int main()
 		}
 		/////////////////////////////////////
 
-		////quad for visual debugging
-		//quadShader.use();
-		//quadShader.setFloat("near_plane", nearPlane);
-		//quadShader.setFloat("far_plane", farPlane);
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_2D, depthMap);
-		////renderQuad();
+		if (waterOn)
+		{
+			glActiveTexture(GL_TEXTURE1);	//depth texture (GL_TEXTURE1)
+			glBindTexture(GL_TEXTURE_2D, waterFBO.reflecTexture);
+			/////////////////////////////////////
+			//Render scene as normal using shadowShader
+			//draw stage
+			projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+			view = camera.GetViewMatrix();
+			shadowShader.setMat4("projection", projection);
+			shadowShader.setMat4("view", view);
+			setLightSetting(shadowShader, lightOn, dirLightColor, pointLightColor, spotLightColor);
 
-		//draw skybox
-		glDepthFunc(GL_LEQUAL);
-		skyboxShader.use();
-		view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
-		skyboxShader.setMat4("view", view);
-		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-		skyboxShader.setMat4("projection", projection);
+			normalMat = glm::transpose(glm::inverse(stageModel));
+			shadowShader.setMat4("normalMat", normalMat);
+			shadowShader.setMat4("model", stageModel);
+			shadowShader.setVec3("cameraPos", camera.Position);////// for reflection
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+			stage.Draw(shadowShader);
+			//draw robot
+			for (int i = 0; i < MODEL_PARTS_NUM; i++) {
 
-		skyboxVAO.Bind();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);//samplerCube
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		skyboxVAO.Unbind();
-		glDepthFunc(GL_LESS); // set depth function back to default
+				shadowShader.setMat4("model", modelMat[i]);
+
+				normalMat = glm::transpose(glm::inverse(modelMat[i]));
+				shadowShader.setMat4("normalMat", normalMat);
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+				//models[i].Draw(shader);
+				models[i].Draw(shadowShader, instanceNum);//draw instance
+			}
+			/////////////////////////////////////
+		}
 
 		if (shadowOn)
 		{
@@ -663,7 +694,30 @@ int main()
 			cubeVAO.Unbind();
 		}
 
+		//draw water plane
+		waterShader.use();
+		model = glm::mat4(1.0f);
+		waterShader.setMat4("model", model);
+		waterShader.setMat4("view", view);
+		waterShader.setMat4("projection", projection);
+		planeVAO.Bind();
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		planeVAO.Unbind();
 
+		//draw skybox
+		glDepthFunc(GL_LEQUAL);
+		skyboxShader.use();
+		view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+		skyboxShader.setMat4("view", view);
+		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+		skyboxShader.setMat4("projection", projection);
+
+		skyboxVAO.Bind();
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);//samplerCube
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		skyboxVAO.Unbind();
+		glDepthFunc(GL_LESS); // set depth function back to default
 
 
 
@@ -743,130 +797,7 @@ int main()
 	glfwTerminate();
 	return 0;
 }
-void RenderScene(const Shader& shader, VAO& planeVAO)
-{
-	glm::mat4 model = glm::mat4(1.0f);
-	shader.setMat4("model", model);
-	planeVAO.Bind();
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	// cubes
-	model = glm::mat4(1.0f);
-	model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
-	model = glm::scale(model, glm::vec3(0.5f));
-	shader.setMat4("model", model);
-	renderCube();
-	model = glm::mat4(1.0f);
-	model = glm::translate(model, glm::vec3(2.0f, 0.0f, 1.0));
-	model = glm::scale(model, glm::vec3(0.5f));
-	shader.setMat4("model", model);
-	renderCube();
-	model = glm::mat4(1.0f);
-	model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 2.0));
-	model = glm::rotate(model, glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
-	model = glm::scale(model, glm::vec3(0.25));
-	shader.setMat4("model", model);
-	renderCube();
-}
-unsigned int cubeVAO = 0;
-unsigned int cubeVBO = 0;
-void renderCube()
-{
-	// initialize (if necessary)
-	if (cubeVAO == 0)
-	{
-		float vertices[] = {
-			// back face
-			-1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-			 1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-			 1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
-			 1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-			-1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-			-1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
-			// front face
-			-1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-			 1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
-			 1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-			 1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-			-1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
-			-1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-			// left face
-			-1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-			-1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
-			-1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-			-1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-			-1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-			-1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-			// right face
-			 1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-			 1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-			 1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
-			 1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-			 1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-			 1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
-			// bottom face
-			-1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-			 1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
-			 1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-			 1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-			-1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-			-1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-			// top face
-			-1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-			 1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-			 1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
-			 1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-			-1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-			-1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
-		};
-		glGenVertexArrays(1, &cubeVAO);
-		glGenBuffers(1, &cubeVBO);
-		// fill buffer
-		glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-		// link vertex attributes
-		glBindVertexArray(cubeVAO);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
-	}
-	// render Cube
-	glBindVertexArray(cubeVAO);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
-	glBindVertexArray(0);
-}
-unsigned int quadVAO = 0;
-unsigned int quadVBO;
-void renderQuad()
-{
-	if (quadVAO == 0)
-	{
-		float quadVertices[] = {
-			// positions        // texture Coords
-			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-			 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-			 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-		};
-		// setup plane VAO
-		glGenVertexArrays(1, &quadVAO);
-		glGenBuffers(1, &quadVBO);
-		glBindVertexArray(quadVAO);
-		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-	}
-	glBindVertexArray(quadVAO);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glBindVertexArray(0);
-}
+
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)

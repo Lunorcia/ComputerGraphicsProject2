@@ -72,6 +72,12 @@
     <ClCompile Include="Model.cpp">
       <Filter>來源檔案</Filter>
     </ClCompile>
+    <ClCompile Include="FBO.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="WaterFBO.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h">
@@ -126,6 +132,12 @@
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="Model.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="FBO.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="WaterFBO.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>

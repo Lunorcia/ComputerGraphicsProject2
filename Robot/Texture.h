@@ -17,6 +17,7 @@ public:
 	std::string texMaterialType;
 	std::string path;
 	Texture(const char* path, GLenum slot);
+	Texture(const char* path, GLenum slot, bool tex);
 	Texture(const char* path, GLenum texType, GLenum slot, GLenum format, GLenum pixelType, bool upsideDown);
 	Texture(const char* path, const char* textType, GLenum slot);
 

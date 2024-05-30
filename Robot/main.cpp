@@ -64,13 +64,13 @@ std::vector<glm::vec3> setTranslations(unsigned int insNum);
 
 std::vector<float> planeVertices = {
 	// positions            // normals         // texcoords
-	 25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-	-25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
-	-25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+	 10.0f, 0.0f,  10.0f,  0.0f, 1.0f, 0.0f,   5.0f,  0.0f,
+	-10.0f, 0.0f,  10.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
+	-10.0f, 0.0f, -10.0f,  0.0f, 1.0f, 0.0f,   0.0f,  5.0f,
 
-	 25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-	-25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
-	 25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f
+	 10.0f, 0.0f,  10.0f,  0.0f, 1.0f, 0.0f,   5.0f,  0.0f,
+	-10.0f, 0.0f, -10.0f,  0.0f, 1.0f, 0.0f,   0.0f,  5.0f,
+	 10.0f, 0.0f, -10.0f,  0.0f, 1.0f, 0.0f,   5.0f,  5.0f
 };
 
 
@@ -216,7 +216,11 @@ bool shadowOn = false;
 bool reflectionOn = false;
 bool waterOn = false;
 
+float waterHeight = 0.0f;
+float moveFactor = 0;
+float waveSpeed = 0.03f;
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec4 planePos(0.0f, -1.0f, 0.0f, 1.0f);
 
 glm::vec3 fullBodyMovement;
 glm::vec3 fullBodyRotation;
@@ -287,7 +291,10 @@ int main()
 	Shader skyboxShader("shader/skyboxVS.vs", "shader/skyboxFS.fs");
 	Shader depthShader("shader/depthmap.vs", "shader/depthmap.fs");
 	Shader shadowShader("shader/shadowmodelVS.vs", "shader/shadowmodelFS.fs");
-	Shader waterShader("shader/water.vs", "shader/water.fs");
+	Shader waterShader("shader/watermodelVS.vs", "shader/watermodelFS.fs");
+	Shader waterPlaneShader("shader/water.vs", "shader/water.fs");
+
+	Texture waterdudv("skybox/dudv.jpg", GL_TEXTURE2);
 
 	std::vector<glm::vec3> translations = setTranslations(instanceNum);	//set instance translation
 	Mesh::translations = translations;
@@ -383,6 +390,13 @@ int main()
 	shadowShader.setInt("skybox", 0);
 	shadowShader.setInt("shadowMap", 1);
 
+	waterShader.use();
+	waterShader.setInt("skybox", 0);
+	waterShader.setInt("shadowMap", 1);
+
+	waterPlaneShader.setInt("reflecTexture", 0);
+	waterPlaneShader.setInt("refracTexture", 1);
+	waterPlaneShader.setInt("dudvMap", 2);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -413,7 +427,7 @@ int main()
 
 			ImGui::NewFrame();
 
-			ImGui::SetNextWindowSize(ImVec2(600, 300), ImGuiCond_FirstUseEver);
+			ImGui::SetNextWindowSize(ImVec2(600, 450), ImGuiCond_FirstUseEver);
 			ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
 			ImGui::Begin("Controll");
 
@@ -520,12 +534,20 @@ int main()
 			ImGui::Text("RIGHT_ARM_DOWN:%f, %f, %f", modelAngles[RIGHT_ARM_DOWN].x, modelAngles[RIGHT_ARM_DOWN].y, modelAngles[RIGHT_ARM_DOWN].z);*/
 
 			ImGui::End();
+
+			// Display reflection and refraction textures
+			ImGui::Begin("Water FBO Textures");
+			ImGui::Text("Reflection Texture:");
+			ImGui::Image((void*)(intptr_t)waterFBO.reflecTexture, ImVec2(300, 200));
+			ImGui::Text("Refraction Texture:");
+			ImGui::Image((void*)(intptr_t)waterFBO.refracTexture, ImVec2(300, 200));
+			ImGui::End();
 		}
 
 		Action::ChooseAction(actionNum);
 		updateModel();
 
-		if (shadowOn)
+		if (shadowOn)	//light cube pos
 		{
 			// Change light position over time
 			lightPos.x = sin(glfwGetTime()) * 2.0f;
@@ -541,7 +563,8 @@ int main()
 		glm::mat4 projection;
 		glm::mat4 normalMat;
 
-
+		glEnable(GL_CLIP_DISTANCE0);
+		////////////////////////////////////////////////////////
 		//1. render depth to texture (from light's perspective)
 		glm::mat4 lightProjection, lightView, lightSpaceMatrix;
 		float nearPlane = 1.0f, farPlane = 100.0f;
@@ -550,34 +573,18 @@ int main()
 		lightSpaceMatrix = lightProjection * lightView;
 		depthShader.use();
 		depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-		//draw on depthMapFBO
-		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-		glClear(GL_DEPTH_BUFFER_BIT);
-		/////////////////////////////////////
-		//Render scene for depth texture using depthShader (only need uniform "model")
-		//draw stage
-		depthShader.setMat4("model", stageModel);
-		stage.Draw(stageShader);
-		//draw robot
-		for (int i = 0; i < MODEL_PARTS_NUM; i++) {
-
-			depthShader.setMat4("model", modelMat[i]);
-			//models[i].Draw(shader);
-			models[i].Draw(depthShader, instanceNum);//draw instance
-		}
-		/////////////////////////////////////
-
-		if (waterOn)	//draw on waterFBO (ReflecFBO)
+		
+		if (shadowOn)
 		{
-			glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-			waterFBO.BindReflecFBO();
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			//draw on depthMapFBO
+			glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+			glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+			glClear(GL_DEPTH_BUFFER_BIT);
 			/////////////////////////////////////
 			//Render scene for depth texture using depthShader (only need uniform "model")
 			//draw stage
 			depthShader.setMat4("model", stageModel);
-			stage.Draw(stageShader);
+			stage.Draw(depthShader);
 			//draw robot
 			for (int i = 0; i < MODEL_PARTS_NUM; i++) {
 
@@ -588,68 +595,160 @@ int main()
 			/////////////////////////////////////
 		}
 
+		if (waterOn)	//draw on waterFBO (ReflecFBO & RefracFBO)
+		{
+			float distance = 2 * (camera.Position.y - waterHeight);//only for reflection
+			camera.Position.y -= distance;
+			camera.Pitch = (camera.Pitch)*-1;	//invert Pitch
+
+			waterShader.use();
+			projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+			view = camera.GetViewMatrix();
+			waterShader.setMat4("projection", projection);
+			waterShader.setMat4("view", view);
+			waterShader.setVec3("viewPos", camera.Position);
+			waterShader.setVec3("lightPos", lightPos);
+			waterShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+			waterShader.setBool("shadows", shadowOn);//turn on shadow
+			waterShader.setBool("reflectionOn", reflectionOn);// turn on environment map
+			setLightSetting(waterShader, lightOn, dirLightColor, pointLightColor, spotLightColor);
+
+			//draw on ReflecFBO
+			glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+			waterFBO.BindReflecFBO();
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			planePos = glm::vec4(0.0f, 1.0f, 0.0f, -waterHeight);
+			waterShader.setVec4("plane", planePos);
+			glActiveTexture(GL_TEXTURE1);	//depth texture (GL_TEXTURE1)
+			glBindTexture(GL_TEXTURE_2D, depthMap);
+			/////////////////////////////////////
+			//Render scene as normal using waterShader
+			//draw stage
+			normalMat = glm::transpose(glm::inverse(stageModel));
+			waterShader.setMat4("normalMat", normalMat);
+			waterShader.setMat4("model", stageModel);
+			waterShader.setVec3("cameraPos", camera.Position);////// for reflection
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+			//stage.Draw(waterShader);
+			//draw robot
+			for (int i = 0; i < MODEL_PARTS_NUM; i++) {
+
+				waterShader.setMat4("model", modelMat[i]);
+
+				normalMat = glm::transpose(glm::inverse(modelMat[i]));
+				waterShader.setMat4("normalMat", normalMat);
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+				//models[i].Draw(shader);
+				models[i].Draw(waterShader, instanceNum);//draw instance
+			}
+			//draw skybox
+			glDepthFunc(GL_LEQUAL);
+			skyboxShader.use();
+			view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+			skyboxShader.setMat4("view", view);
+			projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+			skyboxShader.setMat4("projection", projection);
+
+			skyboxVAO.Bind();
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);//samplerCube
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+			skyboxVAO.Unbind();
+			glDepthFunc(GL_LESS); // set depth function back to default
+			/////////////////////////////////////
+
+			camera.Position.y += distance;
+			camera.Pitch = (camera.Pitch)*-1;	//invert Pitch
+
+			//draw on RefracFBO
+			waterShader.use();
+			projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+			view = camera.GetViewMatrix();
+			waterShader.setMat4("projection", projection);
+			waterShader.setMat4("view", view);
+			waterShader.setVec3("viewPos", camera.Position);
+			waterShader.setVec3("lightPos", lightPos);
+			waterShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+			waterShader.setBool("shadows", shadowOn);//turn on shadow
+			waterShader.setBool("reflectionOn", reflectionOn);// turn on environment map
+			setLightSetting(waterShader, lightOn, dirLightColor, pointLightColor, spotLightColor);
+
+			glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+			waterFBO.BindRefracFBO();
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			planePos = glm::vec4(0.0f, -1.0f, 0.0f, waterHeight);
+			waterShader.setVec4("plane", planePos);
+			glActiveTexture(GL_TEXTURE1);	//depth texture (GL_TEXTURE1)
+			glBindTexture(GL_TEXTURE_2D, depthMap);
+			/////////////////////////////////////////////////////////////////////////////
+			//Render scene as normal using waterShader
+			//draw stage
+			normalMat = glm::transpose(glm::inverse(stageModel));
+			waterShader.setMat4("normalMat", normalMat);
+			waterShader.setMat4("model", stageModel);
+			waterShader.setVec3("cameraPos", camera.Position);////// for reflection
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+			//stage.Draw(waterShader);
+			//draw robot
+			for (int i = 0; i < MODEL_PARTS_NUM; i++) {
+
+				waterShader.setMat4("model", modelMat[i]);
+
+				normalMat = glm::transpose(glm::inverse(modelMat[i]));
+				waterShader.setMat4("normalMat", normalMat);
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+				//models[i].Draw(shader);
+				models[i].Draw(waterShader, instanceNum);//draw instance
+			}
+			//draw skybox
+			glDepthFunc(GL_LEQUAL);
+			skyboxShader.use();
+			view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+			skyboxShader.setMat4("view", view);
+			projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+			skyboxShader.setMat4("projection", projection);
+
+			skyboxVAO.Bind();
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);//samplerCube
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+			skyboxVAO.Unbind();
+			glDepthFunc(GL_LESS); // set depth function back to default
+			/////////////////////////////////////////////////////////////////////////////
+		}
+
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);//unbind FBO
 
 		glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		/////////////////////////////////////////////////////////////
 		//2. render scene as normal using generated depth/shadow map
-		shadowShader.use();
-		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-		view = camera.GetViewMatrix();
-		shadowShader.setMat4("projection", projection);
-		shadowShader.setMat4("view", view);
-		shadowShader.setVec3("viewPos", camera.Position);
-		shadowShader.setVec3("lightPos", lightPos);
-		shadowShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-		shadowShader.setBool("shadows", shadowOn);//turn on shadow
-		shadowShader.setBool("reflectionOn", reflectionOn);// turn on environment map
-
-		glActiveTexture(GL_TEXTURE1);	//depth texture (GL_TEXTURE1)
-		glBindTexture(GL_TEXTURE_2D, depthMap);
-		/////////////////////////////////////
-		//Render scene as normal using shadowShader
-		//draw stage
-		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-		view = camera.GetViewMatrix();
-		shadowShader.setMat4("projection", projection);
-		shadowShader.setMat4("view", view);
-		setLightSetting(shadowShader, lightOn, dirLightColor, pointLightColor, spotLightColor);
-
-		normalMat = glm::transpose(glm::inverse(stageModel));
-		shadowShader.setMat4("normalMat", normalMat);
-		shadowShader.setMat4("model", stageModel);
-		shadowShader.setVec3("cameraPos", camera.Position);////// for reflection
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-		stage.Draw(shadowShader);
-		//draw robot
-		for (int i = 0; i < MODEL_PARTS_NUM; i++) {
-
-			shadowShader.setMat4("model", modelMat[i]);
-
-			normalMat = glm::transpose(glm::inverse(modelMat[i]));
-			shadowShader.setMat4("normalMat", normalMat);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-			//models[i].Draw(shader);
-			models[i].Draw(shadowShader, instanceNum);//draw instance
-		}
-		/////////////////////////////////////
-
-		if (waterOn)
+		if (shadowOn)
 		{
-			glActiveTexture(GL_TEXTURE1);	//depth texture (GL_TEXTURE1)
-			glBindTexture(GL_TEXTURE_2D, waterFBO.reflecTexture);
-			/////////////////////////////////////
-			//Render scene as normal using shadowShader
-			//draw stage
+			shadowShader.use();
 			projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
 			view = camera.GetViewMatrix();
 			shadowShader.setMat4("projection", projection);
 			shadowShader.setMat4("view", view);
+			shadowShader.setVec3("viewPos", camera.Position);
+			shadowShader.setVec3("lightPos", lightPos);
+			shadowShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+			shadowShader.setBool("shadows", shadowOn);//turn on shadow
+			shadowShader.setBool("reflectionOn", reflectionOn);// turn on environment map
 			setLightSetting(shadowShader, lightOn, dirLightColor, pointLightColor, spotLightColor);
 
+			glActiveTexture(GL_TEXTURE1);	//depth texture (GL_TEXTURE1)
+			glBindTexture(GL_TEXTURE_2D, depthMap);
+			/////////////////////////////////////
+			//Render scene as normal using shadowShader
+			//draw stage
 			normalMat = glm::transpose(glm::inverse(stageModel));
 			shadowShader.setMat4("normalMat", normalMat);
 			shadowShader.setMat4("model", stageModel);
@@ -672,6 +771,52 @@ int main()
 			/////////////////////////////////////
 		}
 
+		if (waterOn)
+		{
+			glDisable(GL_CLIP_DISTANCE0);
+			waterShader.use();
+			planePos = glm::vec4(0.0f, -1.0f, 0.0f, 1500.0f);
+			waterShader.setVec4("plane", planePos);
+
+			projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+			view = camera.GetViewMatrix();
+			waterShader.setMat4("projection", projection);
+			waterShader.setMat4("view", view);
+			waterShader.setVec3("viewPos", camera.Position);
+			waterShader.setVec3("lightPos", lightPos);
+			waterShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+			waterShader.setBool("shadows", shadowOn);//turn on shadow
+			waterShader.setBool("reflectionOn", reflectionOn);// turn on environment map
+			setLightSetting(waterShader, lightOn, dirLightColor, pointLightColor, spotLightColor);
+
+			glActiveTexture(GL_TEXTURE1);	//depth texture (GL_TEXTURE1)
+			glBindTexture(GL_TEXTURE_2D, waterFBO.reflecTexture);
+			/////////////////////////////////////
+			//Render scene as normal using waterShader
+			//draw stage
+			normalMat = glm::transpose(glm::inverse(stageModel));
+			waterShader.setMat4("normalMat", normalMat);
+			waterShader.setMat4("model", stageModel);
+			waterShader.setVec3("cameraPos", camera.Position);////// for reflection
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+			//stage.Draw(waterShader);
+			//draw robot
+			for (int i = 0; i < MODEL_PARTS_NUM; i++) {
+
+				waterShader.setMat4("model", modelMat[i]);
+
+				normalMat = glm::transpose(glm::inverse(modelMat[i]));
+				waterShader.setMat4("normalMat", normalMat);
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+				//models[i].Draw(shader);
+				models[i].Draw(waterShader, instanceNum);//draw instance
+			}
+			/////////////////////////////////////
+		}
+
+		//other object render vvvvvv
 		if (shadowOn)
 		{
 			//draw light cube
@@ -694,15 +839,30 @@ int main()
 			cubeVAO.Unbind();
 		}
 
-		//draw water plane
-		waterShader.use();
-		model = glm::mat4(1.0f);
-		waterShader.setMat4("model", model);
-		waterShader.setMat4("view", view);
-		waterShader.setMat4("projection", projection);
-		planeVAO.Bind();
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		planeVAO.Unbind();
+		if (waterOn)
+		{
+			//draw water plane
+			waterPlaneShader.use();
+			model = glm::mat4(1.0f);
+			view = camera.GetViewMatrix();
+			projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+			waterPlaneShader.setMat4("model", model);
+			waterPlaneShader.setMat4("view", view);
+			waterPlaneShader.setMat4("projection", projection);
+			moveFactor += waveSpeed * deltaTime;
+			moveFactor = fmod(moveFactor, 1);
+			waterPlaneShader.setFloat("moveFactor", moveFactor);
+
+			planeVAO.Bind();
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, waterFBO.reflecTexture);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, waterFBO.refracTexture);
+			waterdudv.Bind();//texture
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+			planeVAO.Unbind();
+		}
+
 
 		//draw skybox
 		glDepthFunc(GL_LEQUAL);

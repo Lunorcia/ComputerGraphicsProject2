@@ -16,11 +16,13 @@ uniform mat4 projection;
 uniform mat4 normalMat;
 uniform mat4 lightSpaceMatrix;
 
+uniform vec4 plane;
 
 
 void main()
 {
     FragPos = vec3(model * vec4(aPos, 1.0));
+    gl_ClipDistance[0] = dot(vec4(FragPos, 1.0), plane);
     Normal = mat3(normalMat) * aNormal;
     TexCoords = aTexCoords;
     FragPosLightSpace = lightSpaceMatrix * vec4(FragPos, 1.0);

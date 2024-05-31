@@ -5,16 +5,20 @@ layout (location = 2) in vec2 aTexCoords;
 
 out vec4 clipSpace;
 out vec2 texCoords;
+out vec3 FragPos;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform vec3 lightPos;
 
-const float tiling = 1.0;
+const float tiling = 3.0;
 
 void main()
 {
+    FragPos = vec3(model * vec4(aPos, 1.0));
     clipSpace = projection * view * model * vec4(aPos, 1.0);
-    texCoords = vec2(aPos.x / 2.0 + 0.5, aPos.z / 2.0 + 0.5) * tiling;
+    texCoords = aTexCoords * tiling;
+    //texCoords = vec2(aPos.x / 2 + 5, aPos.z / 2 + 5) * tiling;
 	gl_Position = clipSpace;
 }

@@ -294,7 +294,8 @@ int main()
 	Shader waterShader("shader/watermodelVS.vs", "shader/watermodelFS.fs");
 	Shader waterPlaneShader("shader/water.vs", "shader/water.fs");
 
-	Texture waterdudv("skybox/dudv.jpg", GL_TEXTURE2);
+	Texture waterdudv("skybox/waterDUDV.png", GL_TEXTURE2);
+	Texture normalMap("skybox/normalMap.png", GL_TEXTURE3);
 
 	std::vector<glm::vec3> translations = setTranslations(instanceNum);	//set instance translation
 	Mesh::translations = translations;
@@ -397,6 +398,7 @@ int main()
 	waterPlaneShader.setInt("reflecTexture", 0);
 	waterPlaneShader.setInt("refracTexture", 1);
 	waterPlaneShader.setInt("dudvMap", 2);
+	waterPlaneShader.setInt("normalMap", 3);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -564,6 +566,7 @@ int main()
 		glm::mat4 normalMat;
 
 		glEnable(GL_CLIP_DISTANCE0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);//unbind FBO
 		////////////////////////////////////////////////////////
 		//1. render depth to texture (from light's perspective)
 		glm::mat4 lightProjection, lightView, lightSpaceMatrix;
@@ -608,6 +611,9 @@ int main()
 			waterShader.setMat4("view", view);
 			waterShader.setVec3("viewPos", camera.Position);
 			waterShader.setVec3("lightPos", lightPos);
+			lightProjection = glm::perspective(45.0f, (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, nearPlane, farPlane);
+			lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+			lightSpaceMatrix = lightProjection * lightView;
 			waterShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 			waterShader.setBool("shadows", shadowOn);//turn on shadow
 			waterShader.setBool("reflectionOn", reflectionOn);// turn on environment map
@@ -730,6 +736,7 @@ int main()
 
 		/////////////////////////////////////////////////////////////
 		//2. render scene as normal using generated depth/shadow map
+		glDisable(GL_CLIP_DISTANCE0);
 		if (shadowOn)
 		{
 			shadowShader.use();
@@ -773,7 +780,6 @@ int main()
 
 		if (waterOn)
 		{
-			glDisable(GL_CLIP_DISTANCE0);
 			waterShader.use();
 			planePos = glm::vec4(0.0f, -1.0f, 0.0f, 1500.0f);
 			waterShader.setVec4("plane", planePos);
@@ -852,13 +858,17 @@ int main()
 			moveFactor += waveSpeed * deltaTime;
 			moveFactor = fmod(moveFactor, 1);
 			waterPlaneShader.setFloat("moveFactor", moveFactor);
+			waterPlaneShader.setVec3("cameraPos", camera.Position);
+			waterPlaneShader.setVec3("lightPos", lightPos);
+			waterPlaneShader.setVec3("lightColour", glm::vec3(0.8, 0.8, 1.0));
 
 			planeVAO.Bind();
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, waterFBO.reflecTexture);
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, waterFBO.refracTexture);
-			waterdudv.Bind();//texture
+			waterdudv.Bind();//texture 2
+			normalMap.Bind();//texture 3
 			glDrawArrays(GL_TRIANGLES, 0, 6);
 			planeVAO.Unbind();
 		}

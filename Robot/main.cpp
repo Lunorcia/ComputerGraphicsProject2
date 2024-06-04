@@ -215,6 +215,7 @@ int instanceNum = 1;
 bool shadowOn = false;
 bool reflectionOn = false;
 bool waterOn = false;
+bool toonOn = false;
 
 float waterHeight = 0.0f;
 float moveFactor = 0;
@@ -287,12 +288,14 @@ int main()
 
 	Shader shader("shader/instancemodelVS.vs", "shader/instancemodelFS.fs");
 	Shader stageShader("shader/reflectionmodelVS.vs", "shader/reflectionmodelFS.fs");
+	//instanceShader has included reflection function
 	Shader cubeShader("shader/cubemapsVS.vs", "shader/cubemapsFS.fs");
 	Shader skyboxShader("shader/skyboxVS.vs", "shader/skyboxFS.fs");
 	Shader depthShader("shader/depthmap.vs", "shader/depthmap.fs");
 	Shader shadowShader("shader/shadowmodelVS.vs", "shader/shadowmodelFS.fs");
 	Shader waterShader("shader/watermodelVS.vs", "shader/watermodelFS.fs");
 	Shader waterPlaneShader("shader/water.vs", "shader/water.fs");
+	Shader toonShader("shader/toonmodelVS.vs", "shader/toonmodelFS.fs");
 
 	Texture waterdudv("skybox/waterDUDV.png", GL_TEXTURE2);
 	Texture normalMap("skybox/normalMap.png", GL_TEXTURE3);
@@ -400,6 +403,9 @@ int main()
 	waterPlaneShader.setInt("refracTexture", 1);
 	waterPlaneShader.setInt("dudvMap", 2);
 	waterPlaneShader.setInt("normalMap", 3);
+
+	toonShader.use();
+	// no preset
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -517,11 +523,28 @@ int main()
 				ImGui::SameLine();
 				ImGui::Text("View");
 			}
-
-			ImGui::Checkbox("Enable Shadow", &shadowOn);
-			ImGui::Checkbox("Enable Environment map", &reflectionOn);
-			ImGui::Checkbox("Enable Water", &waterOn);
-
+			if (ImGui::Checkbox("Enable Shadow", &shadowOn))
+			{
+				waterOn = false;
+				toonOn = false;
+			}
+			if (ImGui::Checkbox("Enable Environment map", &reflectionOn))
+			{
+				toonOn = false;
+			}
+			if (ImGui::Checkbox("Enable Water", &waterOn))
+			{
+				shadowOn = false;
+				toonOn = false;
+			}
+			if (ImGui::Checkbox("Enable Toon shader", &toonOn))
+			{
+				shadowOn = false;
+				reflectionOn = false;
+				waterOn = false;
+			}
+			
+			
 			ImGui::SliderInt("Robot amount", &instanceNum, 1, 1000);
 			if (instanceNum != translations.size())
 			{
@@ -553,7 +576,7 @@ int main()
 		Action::ChooseAction(actionNum);
 		updateModel();
 
-		if (shadowOn)	//light cube pos
+		if (shadowOn || toonOn)	//light cube pos
 		{
 			// Change light position over time
 			lightPos.x = sin(glfwGetTime()) * 2.0f;
@@ -826,8 +849,34 @@ int main()
 			/////////////////////////////////////
 		}
 
+		if (toonOn)
+		{
+			toonShader.use();
+			projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+			view = camera.GetViewMatrix();
+			toonShader.setMat4("projection", projection);
+			toonShader.setMat4("view", view);
+			toonShader.setVec3("viewPos", camera.Position);
+			toonShader.setVec3("lightPos", lightPos);
+			setLightSetting(toonShader, lightOn, dirLightColor, pointLightColor, spotLightColor);
+			//draw stage
+			normalMat = glm::transpose(glm::inverse(stageModel));
+			toonShader.setMat4("normalMat", normalMat);
+			toonShader.setMat4("model", stageModel);
+			stage.Draw(toonShader);
+			//draw robot
+			for (int i = 0; i < MODEL_PARTS_NUM; i++) {
+
+				toonShader.setMat4("model", modelMat[i]);
+				normalMat = glm::transpose(glm::inverse(modelMat[i]));
+				toonShader.setMat4("normalMat", normalMat);
+				//models[i].Draw(shader);
+				models[i].Draw(toonShader, instanceNum);//draw instance
+			}
+		}
+
 		//other object render vvvvvv
-		if (shadowOn)
+		if (shadowOn || toonOn)
 		{
 			//draw light cube
 			cubeShader.use();

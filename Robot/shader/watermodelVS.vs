@@ -21,8 +21,11 @@ uniform vec4 plane;
 
 void main()
 {
-    FragPos = vec3(model * vec4(aPos + aOffset, 1.0));
-    gl_ClipDistance[0] = dot(vec4(FragPos + aOffset, 1.0), plane);
+    mat4 instanceModel = model;
+    instanceModel[3] = instanceModel[3] + vec4(aOffset, 0.0);
+
+    FragPos = vec3(instanceModel * vec4(aPos, 1.0));
+    gl_ClipDistance[0] = dot(vec4(FragPos, 1.0), plane);
     Normal = mat3(normalMat) * aNormal;
     TexCoords = aTexCoords;
     FragPosLightSpace = lightSpaceMatrix * vec4(FragPos , 1.0);

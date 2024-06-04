@@ -65,6 +65,7 @@ uniform vec3 viewPos;
 
 uniform vec3 cameraPos;
 uniform samplerCube skybox;
+uniform bool reflectionOn;
 
 in vec3 FragPos;
 in vec3 Normal;
@@ -79,9 +80,13 @@ void main()
 	vec3 norm = normalize(Normal);
 	vec3 viewDir = normalize(viewPos - FragPos);
 	vec3 result;
-	vec3 I = normalize(FragPos - cameraPos);
-	vec3 R = reflect(I, normalize(Normal));
-	result = texture(skybox, R).rgb;
+	if (reflectionOn)
+	{
+		vec3 I = normalize(FragPos - cameraPos);
+		vec3 R = reflect(I, normalize(Normal));
+		result = texture(skybox, R).rgb;
+	}
+
 
 	if(lightController.dirLightOn == true)
 		result += CalDirLight(dirLight, norm, viewDir);

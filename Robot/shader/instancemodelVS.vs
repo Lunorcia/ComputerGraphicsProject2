@@ -17,7 +17,10 @@ uniform mat4 normalMat;
 
 void main()
 {
-    FragPos = vec3(model * vec4(aPos + aOffset, 1.0));
+    mat4 instanceModel = model;
+    instanceModel[3] = instanceModel[3] + vec4(aOffset, 0.0);
+
+    FragPos = vec3(instanceModel * vec4(aPos, 1.0));
     Normal = mat3(normalMat) * aNormal;
     TexCoords = aTexCoords;
     

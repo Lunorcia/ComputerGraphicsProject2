@@ -875,6 +875,52 @@ int main()
 			}
 		}
 
+		if ((!shadowOn) && (!toonOn) && (!waterOn)) //default render, (v)instance, (v)reflection
+		{
+			//draw stage
+			shader.use();
+			projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+			view = camera.GetViewMatrix();
+			shader.setMat4("projection", projection);
+			shader.setMat4("view", view);
+			shader.setBool("reflectionOn", reflectionOn);// turn on environment map
+			setLightSetting(shader, lightOn, dirLightColor, pointLightColor, spotLightColor);
+
+			normalMat = glm::transpose(glm::inverse(stageModel));
+			shader.setMat4("normalMat", normalMat);
+			shader.setMat4("model", stageModel);
+			shader.setVec3("cameraPos", camera.Position);////// for reflection
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+			stage.Draw(shader);
+
+			//draw robot
+			shader.use();
+			shader.setMat4("projection", projection);
+			shader.setMat4("view", view);
+
+			setLightSetting(shader, lightOn, dirLightColor, pointLightColor, spotLightColor);
+			normalMat = glm::transpose(glm::inverse(stageModel));
+			shader.setMat4("normalMat", normalMat);
+			shader.setMat4("model", stageModel);
+
+
+			for (int i = 0; i < MODEL_PARTS_NUM; i++) {
+
+				shader.setMat4("model", modelMat[i]);
+
+				normalMat = glm::transpose(glm::inverse(modelMat[i]));
+				shader.setMat4("normalMat", normalMat);
+				shader.setVec3("cameraPos", camera.Position);////// for reflection
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+
+				//models[i].Draw(shader);
+				models[i].Draw(shader, instanceNum);//draw instance
+			}	
+
+		}
+
 		//other object render vvvvvv
 		if (shadowOn || toonOn)
 		{
@@ -944,46 +990,7 @@ int main()
 
 
 
-		//draw stage
-		//stageShader.use();
-		//projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-		//view = camera.GetViewMatrix();
-		//stageShader.setMat4("projection", projection);
-		//stageShader.setMat4("view", view);
-		//setLightSetting(stageShader, lightOn, dirLightColor, pointLightColor, spotLightColor);
-
-		//normalMat = glm::transpose(glm::inverse(stageModel));
-		//stageShader.setMat4("normalMat", normalMat);
-		//stageShader.setMat4("model", stageModel);
-		//stageShader.setVec3("cameraPos", camera.Position);////// for reflection
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-		//stage.Draw(stageShader);
-
-		////draw robot
-		//shader.use();
-		//shader.setMat4("projection", projection);
-		//shader.setMat4("view", view);
-
-		//setLightSetting(shader, lightOn, dirLightColor, pointLightColor, spotLightColor);
-		//normalMat = glm::transpose(glm::inverse(stageModel));
-		//shader.setMat4("normalMat", normalMat);
-		//shader.setMat4("model", stageModel);
-
-
-		//for (int i = 0; i < MODEL_PARTS_NUM; i++) {
-
-		//	shader.setMat4("model", modelMat[i]);
-
-		//	normalMat = glm::transpose(glm::inverse(modelMat[i]));
-		//	shader.setMat4("normalMat", normalMat);
-		//	shader.setVec3("cameraPos", camera.Position);////// for reflection
-		//	glActiveTexture(GL_TEXTURE0);
-		//	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-
-		//	//models[i].Draw(shader);
-		//	//models[i].Draw(shader, instanceNum);//draw instance
-		//}		
+	
 
 
 

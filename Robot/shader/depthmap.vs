@@ -7,5 +7,7 @@ uniform mat4 model;
 
 void main()
 {
-    gl_Position = lightSpaceMatrix * model * vec4(aPos + aOffset, 1.0);
+    mat4 instanceModel = model;
+    instanceModel[3] = instanceModel[3] + vec4(aOffset, 0.0);
+    gl_Position = lightSpaceMatrix * instanceModel * vec4(aPos, 1.0);
 }

@@ -395,6 +395,7 @@ int main()
 	waterShader.setInt("skybox", 0);
 	waterShader.setInt("shadowMap", 1);
 
+	waterPlaneShader.use();
 	waterPlaneShader.setInt("reflecTexture", 0);
 	waterPlaneShader.setInt("refracTexture", 1);
 	waterPlaneShader.setInt("dudvMap", 2);
@@ -539,10 +540,13 @@ int main()
 
 			// Display reflection and refraction textures
 			ImGui::Begin("Water FBO Textures");
+			ImGui::Columns(2, nullptr, false); // Set up two columns
 			ImGui::Text("Reflection Texture:");
 			ImGui::Image((void*)(intptr_t)waterFBO.reflecTexture, ImVec2(300, 200));
+			ImGui::NextColumn(); // Move to the next column
 			ImGui::Text("Refraction Texture:");
 			ImGui::Image((void*)(intptr_t)waterFBO.refracTexture, ImVec2(300, 200));
+			ImGui::Columns(1); // Reset to single column layout
 			ImGui::End();
 		}
 
@@ -601,7 +605,7 @@ int main()
 		if (waterOn)	//draw on waterFBO (ReflecFBO & RefracFBO)
 		{
 			float distance = 2 * (camera.Position.y - waterHeight);//only for reflection
-			camera.Position.y -= distance;
+			camera.Position.y = camera.Position.y - distance;
 			camera.Pitch = (camera.Pitch)*-1;	//invert Pitch
 
 			waterShader.use();
@@ -666,8 +670,8 @@ int main()
 			glDepthFunc(GL_LESS); // set depth function back to default
 			/////////////////////////////////////
 
-			camera.Position.y += distance;
-			camera.Pitch = (camera.Pitch)*-1;	//invert Pitch
+			camera.Position.y = camera.Position.y + distance;
+			camera.Pitch = (camera.Pitch) * -1;	//invert Pitch
 
 			//draw on RefracFBO
 			waterShader.use();

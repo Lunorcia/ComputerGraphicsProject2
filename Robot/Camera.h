@@ -68,6 +68,12 @@ public:
 		return glm::lookAt(Position, Position + Front, Up);
 	}
 
+	void inversePitch()
+	{
+		this->Pitch = this->Pitch * -1;
+		updateCameraVectors();
+	}
+
 	void ProcessKeyboard(Camera_Movement direction, float deltaTime)
 	{
 		float velocity = MovementSpeed * deltaTime;

@@ -636,16 +636,16 @@ int main()
 
 			ImGui::End();
 
-			// Display reflection and refraction textures
-			ImGui::Begin("Water FBO Textures");
-			ImGui::Columns(2, nullptr, false); // Set up two columns
-			ImGui::Text("velocityFBO Texture:");
-			ImGui::Image((void*)(intptr_t)velocityFBO.texture, ImVec2(300, 200));
-			ImGui::NextColumn(); // Move to the next column
-			ImGui::Text("Refraction Texture:");
-			ImGui::Image((void*)(intptr_t)waterFBO.refracTexture, ImVec2(300, 200));
-			ImGui::Columns(1); // Reset to single column layout
-			ImGui::End();
+			//// Display reflection and refraction textures
+			//ImGui::Begin("Water FBO Textures");
+			//ImGui::Columns(2, nullptr, false); // Set up two columns
+			//ImGui::Text("velocityFBO Texture:");
+			//ImGui::Image((void*)(intptr_t)velocityFBO.texture, ImVec2(300, 200));
+			//ImGui::NextColumn(); // Move to the next column
+			//ImGui::Text("Refraction Texture:");
+			//ImGui::Image((void*)(intptr_t)waterFBO.refracTexture, ImVec2(300, 200));
+			//ImGui::Columns(1); // Reset to single column layout
+			//ImGui::End();
 		}
 
 
@@ -707,7 +707,7 @@ int main()
 		{
 			float distance = 2 * (camera.Position.y - waterHeight);//only for reflection
 			camera.Position.y = camera.Position.y - distance;
-			camera.Pitch = (camera.Pitch)*-1;	//invert Pitch
+			camera.inversePitch();
 
 			waterShader.use();
 			projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
@@ -772,7 +772,7 @@ int main()
 			/////////////////////////////////////
 
 			camera.Position.y = camera.Position.y + distance;
-			camera.Pitch = (camera.Pitch) * -1;	//invert Pitch
+			camera.inversePitch();
 
 			//draw on RefracFBO
 			waterShader.use();

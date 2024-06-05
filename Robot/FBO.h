@@ -12,12 +12,15 @@ class FBO
 {
 public:
 	GLuint ID;
-
+	GLuint RBO;
+	GLuint texture;
+	GLuint depthTexture;
 	// constructor
 	FBO();
 
 	GLuint CreateTextureAttatch();
 	GLuint CreateDepthTextureAttatch();
+	void CreateRBO();
 
 	// bind
 	void Bind();

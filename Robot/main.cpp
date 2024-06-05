@@ -73,6 +73,16 @@ std::vector<float> planeVertices = {
 	 10.0f, 0.0f, -10.0f,  0.0f, 1.0f, 0.0f,   5.0f,  5.0f
 };
 
+std::vector<float> quadVertices = {
+	// positions   // texCoords
+	-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+	 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+
+	-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+	 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+	 1.0f,  1.0f, 0.0f, 1.0f, 1.0f
+};
 
 std::vector<std::string> faces{
 	"skybox/right.jpg",
@@ -82,6 +92,7 @@ std::vector<std::string> faces{
 	"skybox/front.jpg",
 	"skybox/back.jpg",
 };
+
 std::vector<float> cubeVertices{
 	// positions          // texture Coords
 	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
@@ -212,7 +223,9 @@ int actionSpeed = 20;
 int testX, testY;
 
 int instanceNum = 1;
+float pixelSize = 0.001f;
 bool shadowOn = false;
+bool mosaicOn = false;
 bool reflectionOn = false;
 bool waterOn = false;
 bool toonOn = false;
@@ -287,7 +300,7 @@ int main()
 	glFrontFace(GL_CCW);
 
 	Shader shader("shader/instancemodelVS.vs", "shader/instancemodelFS.fs");
-	Shader stageShader("shader/reflectionmodelVS.vs", "shader/reflectionmodelFS.fs");
+	//Shader stageShader("shader/reflectionmodelVS.vs", "shader/reflectionmodelFS.fs");
 	//instanceShader has included reflection function
 	Shader cubeShader("shader/cubemapsVS.vs", "shader/cubemapsFS.fs");
 	Shader skyboxShader("shader/skyboxVS.vs", "shader/skyboxFS.fs");
@@ -296,6 +309,7 @@ int main()
 	Shader waterShader("shader/watermodelVS.vs", "shader/watermodelFS.fs");
 	Shader waterPlaneShader("shader/water.vs", "shader/water.fs");
 	Shader toonShader("shader/toonmodelVS.vs", "shader/toonmodelFS.fs");
+	Shader mosaicShader("shader/mosaic.vs", "shader/mosaic.fs");
 
 	Texture waterdudv("skybox/waterDUDV.png", GL_TEXTURE2);
 	Texture normalMap("skybox/normalMap.png", GL_TEXTURE3);
@@ -345,16 +359,7 @@ int main()
 	unsigned int cubemapTexture = loadCubemap(faces);
 	//Texture cubeTexture("skybox/container.jpg", GL_TEXTURE0);
 
-	//set uniform
-	/*cubeShader.use();
-	cubeShader.setInt("skybox", 0);*/
-	skyboxShader.use();
-	skyboxShader.setInt("skybox", 0);
 
-	stageShader.use();
-	stageShader.setInt("skybox", 0);
-	shader.use();
-	shader.setInt("skybox", 0);
 
 	// plane VAO
 	VAO planeVAO = VAO();
@@ -388,12 +393,31 @@ int main()
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);//unbind FBO
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
-	WaterFBO waterFBO;
+	//set uniform
+	skyboxShader.use();
+	skyboxShader.setInt("skybox", 0);
+
+	shader.use();
+	shader.setInt("skybox", 0);
+	shader.setInt("screenTexture", 2);
+
+	//Mosaic effect
+	FBO mosaicFBO;
+	mosaicFBO.CreateTextureAttatch();
+	mosaicFBO.CreateRBO();
+	VAO mosaicVAO = VAO();	//for mosaic to render screen
+	VBO mosaicVBO(quadVertices);
+	mosaicVAO.LinkAttrib(mosaicVBO, 0, 3, GL_FLOAT, 5 * sizeof(float), (void*)0);//aPos
+	mosaicVAO.LinkAttrib(mosaicVBO, 1, 2, GL_FLOAT, 5 * sizeof(float), (void*)(3 * sizeof(float)));//aTexCoords
+	mosaicVAO.Unbind();
+	mosaicShader.use();
+	mosaicShader.setInt("screenTexture", 0);
 
 	shadowShader.use();
 	shadowShader.setInt("skybox", 0);
 	shadowShader.setInt("shadowMap", 1);
 
+	WaterFBO waterFBO;
 	waterShader.use();
 	waterShader.setInt("skybox", 0);
 	waterShader.setInt("shadowMap", 1);
@@ -405,7 +429,7 @@ int main()
 	waterPlaneShader.setInt("normalMap", 3);
 
 	toonShader.use();
-	// no preset
+	//nothing
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -523,10 +547,19 @@ int main()
 				ImGui::SameLine();
 				ImGui::Text("View");
 			}
+			//SFX
 			if (ImGui::Checkbox("Enable Shadow", &shadowOn))
 			{
 				waterOn = false;
 				toonOn = false;
+			}
+			if (ImGui::Checkbox("Enable Pixelation", &mosaicOn))
+			{
+				//nothing
+			}
+			if (mosaicOn)
+			{
+				ImGui::SliderFloat("Pixel Size", &pixelSize, 0.001f, 0.05f);
 			}
 			if (ImGui::Checkbox("Enable Environment map", &reflectionOn))
 			{
@@ -561,16 +594,16 @@ int main()
 
 			ImGui::End();
 
-			// Display reflection and refraction textures
-			ImGui::Begin("Water FBO Textures");
-			ImGui::Columns(2, nullptr, false); // Set up two columns
-			ImGui::Text("Reflection Texture:");
-			ImGui::Image((void*)(intptr_t)waterFBO.reflecTexture, ImVec2(300, 200));
-			ImGui::NextColumn(); // Move to the next column
-			ImGui::Text("Refraction Texture:");
-			ImGui::Image((void*)(intptr_t)waterFBO.refracTexture, ImVec2(300, 200));
-			ImGui::Columns(1); // Reset to single column layout
-			ImGui::End();
+			//// Display reflection and refraction textures
+			//ImGui::Begin("Water FBO Textures");
+			//ImGui::Columns(2, nullptr, false); // Set up two columns
+			//ImGui::Text("Reflection Texture:");
+			//ImGui::Image((void*)(intptr_t)waterFBO.reflecTexture, ImVec2(300, 200));
+			//ImGui::NextColumn(); // Move to the next column
+			//ImGui::Text("Refraction Texture:");
+			//ImGui::Image((void*)(intptr_t)waterFBO.refracTexture, ImVec2(300, 200));
+			//ImGui::Columns(1); // Reset to single column layout
+			//ImGui::End();
 		}
 
 		Action::ChooseAction(actionNum);
@@ -803,6 +836,69 @@ int main()
 				models[i].Draw(shadowShader, instanceNum);//draw instance
 			}
 			/////////////////////////////////////
+			//draw on mosaicFBO
+			if (mosaicOn)
+			{
+				glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+				mosaicFBO.Bind();
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+				shadowShader.use();
+				glActiveTexture(GL_TEXTURE1);	//depth texture (GL_TEXTURE1)
+				glBindTexture(GL_TEXTURE_2D, depthMap);
+				/////////////////////////////////////
+				//Render scene as normal using shadowShader
+				//draw stage
+				normalMat = glm::transpose(glm::inverse(stageModel));
+				shadowShader.setMat4("normalMat", normalMat);
+				shadowShader.setMat4("model", stageModel);
+				shadowShader.setVec3("cameraPos", camera.Position);////// for reflection
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+				stage.Draw(shadowShader);
+				//draw robot
+				for (int i = 0; i < MODEL_PARTS_NUM; i++) {
+
+					shadowShader.setMat4("model", modelMat[i]);
+
+					normalMat = glm::transpose(glm::inverse(modelMat[i]));
+					shadowShader.setMat4("normalMat", normalMat);
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+					//models[i].Draw(shader);
+					models[i].Draw(shadowShader, instanceNum);//draw instance
+				}
+				//draw light cube before pixelation
+				cubeShader.use();
+				model = glm::mat4(1.0f);
+				model = glm::translate(model, lightPos);
+				model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+				view = camera.GetViewMatrix();
+				projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+				cubeShader.setMat4("model", model);
+				cubeShader.setMat4("view", view);
+				cubeShader.setMat4("projection", projection);
+				cubeVAO.Bind();
+				glDrawArrays(GL_TRIANGLES, 0, 36);
+				cubeVAO.Unbind();
+				//draw skybox
+				{
+					glDepthFunc(GL_LEQUAL);
+					skyboxShader.use();
+					view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+					skyboxShader.setMat4("view", view);
+					projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+					skyboxShader.setMat4("projection", projection);
+
+					skyboxVAO.Bind();
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);//samplerCube
+					glDrawArrays(GL_TRIANGLES, 0, 36);
+					skyboxVAO.Unbind();
+					glDepthFunc(GL_LESS); // set depth function back to default
+				}
+				mosaicFBO.Unbind();
+			}
 		}
 
 		if (waterOn)
@@ -847,6 +943,82 @@ int main()
 				models[i].Draw(waterShader, instanceNum);//draw instance
 			}
 			/////////////////////////////////////
+			//draw on mosaicFBO
+			if (mosaicOn)
+			{
+				glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+				mosaicFBO.Bind();
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+				waterShader.use();
+				glActiveTexture(GL_TEXTURE1);	//depth texture (GL_TEXTURE1)
+				glBindTexture(GL_TEXTURE_2D, waterFBO.reflecTexture);
+				/////////////////////////////////////
+				//Render scene as normal using waterShader
+				//draw stage
+				normalMat = glm::transpose(glm::inverse(stageModel));
+				waterShader.setMat4("normalMat", normalMat);
+				waterShader.setMat4("model", stageModel);
+				waterShader.setVec3("cameraPos", camera.Position);////// for reflection
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+				//stage.Draw(waterShader);
+				//draw robot
+				for (int i = 0; i < MODEL_PARTS_NUM; i++) {
+
+					waterShader.setMat4("model", modelMat[i]);
+
+					normalMat = glm::transpose(glm::inverse(modelMat[i]));
+					waterShader.setMat4("normalMat", normalMat);
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+					//models[i].Draw(shader);
+					models[i].Draw(waterShader, instanceNum);//draw instance
+				}
+
+				//draw water plane before pixelation
+				waterPlaneShader.use();
+				model = glm::mat4(1.0f);
+				view = camera.GetViewMatrix();
+				projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+				waterPlaneShader.setMat4("model", model);
+				waterPlaneShader.setMat4("view", view);
+				waterPlaneShader.setMat4("projection", projection);
+				moveFactor += waveSpeed * deltaTime;
+				moveFactor = fmod(moveFactor, 1);
+				waterPlaneShader.setFloat("moveFactor", moveFactor);
+				waterPlaneShader.setVec3("cameraPos", camera.Position);
+				waterPlaneShader.setVec3("lightPos", lightPos);
+				waterPlaneShader.setVec3("lightColour", glm::vec3(0.8, 0.8, 1.0));
+
+				planeVAO.Bind();
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, waterFBO.reflecTexture);
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, waterFBO.refracTexture);
+				waterdudv.Bind();//texture 2
+				normalMap.Bind();//texture 3
+				glDrawArrays(GL_TRIANGLES, 0, 6);
+				planeVAO.Unbind();
+
+				//draw skybox
+				{
+					glDepthFunc(GL_LEQUAL);
+					skyboxShader.use();
+					view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+					skyboxShader.setMat4("view", view);
+					projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+					skyboxShader.setMat4("projection", projection);
+
+					skyboxVAO.Bind();
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);//samplerCube
+					glDrawArrays(GL_TRIANGLES, 0, 36);
+					skyboxVAO.Unbind();
+					glDepthFunc(GL_LESS); // set depth function back to default
+				}
+				mosaicFBO.Unbind();
+			}
 		}
 
 		if (toonOn)
@@ -873,6 +1045,47 @@ int main()
 				//models[i].Draw(shader);
 				models[i].Draw(toonShader, instanceNum);//draw instance
 			}
+			///////////////////////////
+			//draw on mosaicFBO
+			if (mosaicOn)
+			{
+				glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+				mosaicFBO.Bind();
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+				toonShader.use();
+				//draw stage
+				normalMat = glm::transpose(glm::inverse(stageModel));
+				toonShader.setMat4("normalMat", normalMat);
+				toonShader.setMat4("model", stageModel);
+				stage.Draw(toonShader);
+				//draw robot
+				for (int i = 0; i < MODEL_PARTS_NUM; i++) {
+
+					toonShader.setMat4("model", modelMat[i]);
+					normalMat = glm::transpose(glm::inverse(modelMat[i]));
+					toonShader.setMat4("normalMat", normalMat);
+					//models[i].Draw(shader);
+					models[i].Draw(toonShader, instanceNum);//draw instance
+				}
+				//draw skybox
+				{
+					glDepthFunc(GL_LEQUAL);
+					skyboxShader.use();
+					view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+					skyboxShader.setMat4("view", view);
+					projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+					skyboxShader.setMat4("projection", projection);
+
+					skyboxVAO.Bind();
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);//samplerCube
+					glDrawArrays(GL_TRIANGLES, 0, 36);
+					skyboxVAO.Unbind();
+					glDepthFunc(GL_LESS); // set depth function back to default
+				}
+				mosaicFBO.Unbind();
+			}
 		}
 
 		if ((!shadowOn) && (!toonOn) && (!waterOn)) //default render, (v)instance, (v)reflection
@@ -893,104 +1106,153 @@ int main()
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 			stage.Draw(shader);
-
 			//draw robot
-			shader.use();
-			shader.setMat4("projection", projection);
-			shader.setMat4("view", view);
-
-			setLightSetting(shader, lightOn, dirLightColor, pointLightColor, spotLightColor);
 			normalMat = glm::transpose(glm::inverse(stageModel));
 			shader.setMat4("normalMat", normalMat);
 			shader.setMat4("model", stageModel);
-
-
 			for (int i = 0; i < MODEL_PARTS_NUM; i++) {
 
 				shader.setMat4("model", modelMat[i]);
-
 				normalMat = glm::transpose(glm::inverse(modelMat[i]));
 				shader.setMat4("normalMat", normalMat);
 				shader.setVec3("cameraPos", camera.Position);////// for reflection
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-
 				//models[i].Draw(shader);
 				models[i].Draw(shader, instanceNum);//draw instance
-			}	
+			}
+			///////////////////////////
+			//draw on mosaicFBO
+			if (mosaicOn)
+			{
+				glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+				mosaicFBO.Bind();
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+				//draw stage
+				shader.use();
+				normalMat = glm::transpose(glm::inverse(stageModel));
+				shader.setMat4("normalMat", normalMat);
+				shader.setMat4("model", stageModel);
+				shader.setVec3("cameraPos", camera.Position);////// for reflection
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+				stage.Draw(shader);
+				//draw robot
+				normalMat = glm::transpose(glm::inverse(stageModel));
+				shader.setMat4("normalMat", normalMat);
+				shader.setMat4("model", stageModel);
+				for (int i = 0; i < MODEL_PARTS_NUM; i++) {
+
+					shader.setMat4("model", modelMat[i]);
+					normalMat = glm::transpose(glm::inverse(modelMat[i]));
+					shader.setMat4("normalMat", normalMat);
+					shader.setVec3("cameraPos", camera.Position);////// for reflection
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+					//models[i].Draw(shader);
+					models[i].Draw(shader, instanceNum);//draw instance
+				}
+				//draw skybox
+				{
+					glDepthFunc(GL_LEQUAL);
+					skyboxShader.use();
+					view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+					skyboxShader.setMat4("view", view);
+					projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+					skyboxShader.setMat4("projection", projection);
+
+					skyboxVAO.Bind();
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);//samplerCube
+					glDrawArrays(GL_TRIANGLES, 0, 36);
+					skyboxVAO.Unbind();
+					glDepthFunc(GL_LESS); // set depth function back to default
+				}
+				mosaicFBO.Unbind();
+			}
+		}
+
+
+		if (mosaicOn)
+		{
+			mosaicShader.use();
+			mosaicShader.setFloat("pixelSize", pixelSize);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, mosaicFBO.texture);
+			mosaicVAO.Bind();
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+			mosaicVAO.Unbind();
 		}
 
 		//other object render vvvvvv
-		if (shadowOn || toonOn)
-		{
-			//draw light cube
-			cubeShader.use();
-			model = glm::mat4(1.0f);
-			model = glm::translate(model, lightPos);
-			model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-			view = camera.GetViewMatrix();
-			projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+		if (!mosaicOn)
+		{	//draw light cube
+			if (shadowOn || toonOn)	
+			{
+				cubeShader.use();
+				model = glm::mat4(1.0f);
+				model = glm::translate(model, lightPos);
+				model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+				view = camera.GetViewMatrix();
+				projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
 
-			cubeShader.setMat4("model", model);
-			cubeShader.setMat4("view", view);
-			cubeShader.setMat4("projection", projection);
+				cubeShader.setMat4("model", model);
+				cubeShader.setMat4("view", view);
+				cubeShader.setMat4("projection", projection);
 
-			cubeVAO.Bind();
-			////cubeTexture.Bind();//sampler2D
-			//glActiveTexture(GL_TEXTURE0);
-			//glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-			cubeVAO.Unbind();
-		}
-
-		if (waterOn)
-		{
+				cubeVAO.Bind();
+				////cubeTexture.Bind();//sampler2D
+				//glActiveTexture(GL_TEXTURE0);
+				//glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+				glDrawArrays(GL_TRIANGLES, 0, 36);
+				cubeVAO.Unbind();
+			}
 			//draw water plane
-			waterPlaneShader.use();
-			model = glm::mat4(1.0f);
-			view = camera.GetViewMatrix();
-			projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-			waterPlaneShader.setMat4("model", model);
-			waterPlaneShader.setMat4("view", view);
-			waterPlaneShader.setMat4("projection", projection);
-			moveFactor += waveSpeed * deltaTime;
-			moveFactor = fmod(moveFactor, 1);
-			waterPlaneShader.setFloat("moveFactor", moveFactor);
-			waterPlaneShader.setVec3("cameraPos", camera.Position);
-			waterPlaneShader.setVec3("lightPos", lightPos);
-			waterPlaneShader.setVec3("lightColour", glm::vec3(0.8, 0.8, 1.0));
+			if (waterOn)	
+			{
+				waterPlaneShader.use();
+				model = glm::mat4(1.0f);
+				view = camera.GetViewMatrix();
+				projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+				waterPlaneShader.setMat4("model", model);
+				waterPlaneShader.setMat4("view", view);
+				waterPlaneShader.setMat4("projection", projection);
+				moveFactor += waveSpeed * deltaTime;
+				moveFactor = fmod(moveFactor, 1);
+				waterPlaneShader.setFloat("moveFactor", moveFactor);
+				waterPlaneShader.setVec3("cameraPos", camera.Position);
+				waterPlaneShader.setVec3("lightPos", lightPos);
+				waterPlaneShader.setVec3("lightColour", glm::vec3(0.8, 0.8, 1.0));
 
-			planeVAO.Bind();
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, waterFBO.reflecTexture);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, waterFBO.refracTexture);
-			waterdudv.Bind();//texture 2
-			normalMap.Bind();//texture 3
-			glDrawArrays(GL_TRIANGLES, 0, 6);
-			planeVAO.Unbind();
+				planeVAO.Bind();
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, waterFBO.reflecTexture);
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, waterFBO.refracTexture);
+				waterdudv.Bind();//texture 2
+				normalMap.Bind();//texture 3
+				glDrawArrays(GL_TRIANGLES, 0, 6);
+				planeVAO.Unbind();
+			}
+			//draw skybox
+			{
+				glDepthFunc(GL_LEQUAL);
+				skyboxShader.use();
+				view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+				skyboxShader.setMat4("view", view);
+				projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+				skyboxShader.setMat4("projection", projection);
+
+				skyboxVAO.Bind();
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);//samplerCube
+				glDrawArrays(GL_TRIANGLES, 0, 36);
+				skyboxVAO.Unbind();
+				glDepthFunc(GL_LESS); // set depth function back to default
+			}
 		}
 
-
-		//draw skybox
-		glDepthFunc(GL_LEQUAL);
-		skyboxShader.use();
-		view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
-		skyboxShader.setMat4("view", view);
-		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-		skyboxShader.setMat4("projection", projection);
-
-		skyboxVAO.Bind();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);//samplerCube
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		skyboxVAO.Unbind();
-		glDepthFunc(GL_LESS); // set depth function back to default
-
-
-
-	
 
 
 

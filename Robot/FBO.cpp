@@ -33,6 +33,19 @@ GLuint FBO::CreateDepthTextureAttatch()
 	return this->depthTexture;
 }
 
+GLuint FBO::CreateVelocityTextureAttach()
+{
+	this->Bind();
+	glGenTextures(1, &this->texture);
+	glBindTexture(GL_TEXTURE_2D, this->texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, SCREEN_WIDTH, SCREEN_HEIGHT, 0, GL_RG, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->texture, 0);
+	return this->texture;
+}
+
 void FBO::CreateRBO()
 {
 	this->Bind();

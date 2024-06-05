@@ -20,7 +20,9 @@ public:
 
 	GLuint CreateTextureAttatch();
 	GLuint CreateDepthTextureAttatch();
+	GLuint CreateVelocityTextureAttach();
 	void CreateRBO();
+
 
 	// bind
 	void Bind();

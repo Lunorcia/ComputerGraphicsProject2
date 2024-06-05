@@ -15,7 +15,7 @@ void main()
     vec4 previousColor = texture(previousFrame, TexCoords);
 	for(int i=1;i<=blurFactor;++i)
 	{
-		previousColor+=texture(previousFrame, TexCoords+ velocity);
+		previousColor+=texture(previousFrame, TexCoords+ i+velocity);
 	}
 	previousColor /= (blurFactor+1);
 	FragColor = mix(currentColor, previousColor, 0.5);
